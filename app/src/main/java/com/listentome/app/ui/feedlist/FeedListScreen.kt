@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.listentome.app.data.Feed
+import com.listentome.app.ui.components.HtmlText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -130,8 +131,8 @@ private fun FeedRow(feed: Feed, onClick: () -> Unit) {
             )
             Column(modifier = Modifier.padding(start = 12.dp)) {
                 Text(feed.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    feed.description,
+                HtmlText(
+                    html = feed.description,
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis

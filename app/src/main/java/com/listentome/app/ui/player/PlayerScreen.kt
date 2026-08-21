@@ -1,15 +1,15 @@
 package com.listentome.app.ui.player
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import coil3.compose.AsyncImage
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Forward30
@@ -17,19 +17,27 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,14 +52,16 @@ fun PlayerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Now Playing") },
+                title = {},
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         val currentEpisode = episode
         if (currentEpisode == null) {
@@ -60,51 +70,93 @@ fun PlayerScreen(
             }
         } else {
             Column(
-                modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp),
+                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Spacer(modifier = Modifier.weight(1f))
+
                 AsyncImage(
                     model = currentEpisode.imageUrl ?: feed?.imageUrl,
                     contentDescription = currentEpisode.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .size(240.dp)
-                        .padding(bottom = 24.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(24.dp))
                 )
-                Text(currentEpisode.title, style = MaterialTheme.typography.titleLarge)
+
+                Text(
+                    currentEpisode.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    modifier = Modifier.padding(top = 32.dp)
+                )
+                feed?.title?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
 
                 Slider(
                     value = playback.positionMs.toFloat().coerceAtMost(playback.durationMs.toFloat().coerceAtLeast(1f)),
                     valueRange = 0f..playback.durationMs.toFloat().coerceAtLeast(1f),
                     onValueChange = { viewModel.seekTo(it.toLong()) },
-                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+                    colors = SliderDefaults.colors(
+                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    Text(formatMillis(playback.positionMs))
-                    Text(formatMillis(playback.durationMs), modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                    Text(
+                        formatMillis(playback.positionMs),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        formatMillis(playback.durationMs),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.End
+                    )
                 }
 
                 Row(
-                    modifier = Modifier.padding(top = 24.dp),
-                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(24.dp),
+                    modifier = Modifier.padding(vertical = 32.dp),
+                    horizontalArrangement = Arrangement.spacedBy(32.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = { viewModel.skip(-10_000) }) {
-                        Icon(Icons.Default.Replay10, contentDescription = "Back 10 seconds", modifier = Modifier.size(36.dp))
+                    IconButton(onClick = { viewModel.skip(-10_000) }, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.Default.Replay10, contentDescription = "Back 10 seconds", modifier = Modifier.size(32.dp))
                     }
-                    IconButton(onClick = viewModel::togglePlayPause) {
+                    FilledIconButton(
+                        onClick = viewModel::togglePlayPause,
+                        modifier = Modifier.size(80.dp),
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
                         Icon(
                             imageVector = if (playback.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = if (playback.isPlaying) "Pause" else "Play",
-                            modifier = Modifier.size(56.dp)
+                            modifier = Modifier.size(40.dp)
                         )
                     }
-                    IconButton(onClick = { viewModel.skip(30_000) }) {
-                        Icon(Icons.Default.Forward30, contentDescription = "Forward 30 seconds", modifier = Modifier.size(36.dp))
+                    IconButton(onClick = { viewModel.skip(30_000) }, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.Default.Forward30, contentDescription = "Forward 30 seconds", modifier = Modifier.size(32.dp))
                     }
                 }
+
+                Spacer(modifier = Modifier.weight(1f))
             }
         }
     }

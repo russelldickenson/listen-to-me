@@ -86,7 +86,7 @@ fun PlayerScreen(
         }
     }
 
-    val backgroundColor = artworkTint?.let { lerp(PlayerBackgroundBase, it, 0.22f) } ?: PlayerBackgroundBase
+    val backgroundColor = artworkTint?.let { lerp(PlayerBackgroundBase, it, 0.05f) } ?: PlayerBackgroundBase
 
     CompositionLocalProvider(LocalContentColor provides Color.White) {
         Scaffold(

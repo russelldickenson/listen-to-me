@@ -42,9 +42,6 @@ interface EpisodeDao {
     @Query("UPDATE episodes SET queuePosition = :position WHERE id = :episodeId")
     suspend fun setQueuePosition(episodeId: Long, position: Long?)
 
-    @Query("SELECT * FROM episodes WHERE queuePosition IS NOT NULL ORDER BY queuePosition ASC LIMIT 1")
-    suspend fun getFirstInQueue(): Episode?
-
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(episode: Episode): Long
 

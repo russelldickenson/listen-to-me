@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
@@ -39,7 +40,8 @@ import com.listentome.app.ui.components.HtmlText
 fun FeedListScreen(
     viewModel: FeedListViewModel,
     onAddFeed: () -> Unit,
-    onOpenFeed: (Long) -> Unit
+    onOpenFeed: (Long) -> Unit,
+    onOpenQueue: () -> Unit
 ) {
     val feeds by viewModel.feeds.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
@@ -50,6 +52,9 @@ fun FeedListScreen(
             TopAppBar(
                 title = { Text("Podcasts") },
                 actions = {
+                    IconButton(onClick = onOpenQueue) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "Queue")
+                    }
                     IconButton(onClick = viewModel::refreshAll, enabled = !isRefreshing) {
                         Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh all feeds")
                     }

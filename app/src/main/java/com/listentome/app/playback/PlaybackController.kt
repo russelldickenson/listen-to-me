@@ -8,7 +8,6 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
-import com.listentome.app.repository.PodcastRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -17,7 +16,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
@@ -30,7 +28,6 @@ data class PlaybackUiState(
 
 class PlaybackController private constructor(private val context: Context) {
 
-    private val repository = PodcastRepository.get(context)
     private var controller: MediaController? = null
     private val _state = MutableStateFlow(PlaybackUiState())
     val state: StateFlow<PlaybackUiState> = _state.asStateFlow()
@@ -53,13 +50,6 @@ class PlaybackController private constructor(private val context: Context) {
                     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                         val episodeId = mediaItem?.mediaId?.toLongOrNull()
                         _state.value = _state.value.copy(currentEpisodeId = episodeId, positionMs = 0)
-                    }
-
-                    override fun onPlaybackStateChanged(playbackState: Int) {
-                        if (playbackState == Player.STATE_ENDED) {
-                            val finishedEpisodeId = _state.value.currentEpisodeId ?: return
-                            positionPoller.launch { playNextInQueueAfter(finishedEpisodeId) }
-                        }
                     }
                 })
                 controller = c
@@ -85,22 +75,6 @@ class PlaybackController private constructor(private val context: Context) {
         c.playWhenReady = true
         _state.value = _state.value.copy(currentEpisodeId = episodeId, positionMs = startPositionMs)
         startPolling()
-    }
-
-    private suspend fun playNextInQueueAfter(episodeId: Long) {
-        val next = repository.advanceQueuePast(episodeId) ?: return
-        val feed = repository.observeFeed(next.feedId).first()
-        val source = next.localFilePath
-            ?.let { android.net.Uri.fromFile(java.io.File(it)).toString() }
-            ?: next.audioUrl
-        playEpisode(
-            episodeId = next.id,
-            title = next.title,
-            artist = feed?.title ?: "",
-            artworkUri = next.imageUrl ?: feed?.imageUrl,
-            uri = source,
-            startPositionMs = next.playbackPositionMs
-        )
     }
 
     private fun startPolling() {

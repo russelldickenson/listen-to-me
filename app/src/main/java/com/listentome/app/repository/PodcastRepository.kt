@@ -53,11 +53,16 @@ class PodcastRepository private constructor(context: Context) {
         episodeDao.markAsPlayed(episodeId)
     }
 
-    /** Marks the given episode played, removes it from the queue, and returns the next queued episode, if any. */
-    suspend fun advanceQueuePast(episodeId: Long): Episode? = withContext(Dispatchers.IO) {
-        episodeDao.markAsPlayed(episodeId)
-        episodeDao.setQueuePosition(episodeId, null)
-        episodeDao.getFirstInQueue()
+    /** Swaps the queue order of two episodes, used to move an item up/down in the queue. */
+    suspend fun swapQueuePositions(episodeId: Long, otherEpisodeId: Long) = withContext(Dispatchers.IO) {
+        val a = episodeDao.getById(episodeId) ?: return@withContext
+        val b = episodeDao.getById(otherEpisodeId) ?: return@withContext
+        val aPosition = a.queuePosition
+        val bPosition = b.queuePosition
+        if (aPosition != null && bPosition != null) {
+            episodeDao.setQueuePosition(a.id, bPosition)
+            episodeDao.setQueuePosition(b.id, aPosition)
+        }
     }
 
     suspend fun addFeed(url: String): Feed = withContext(Dispatchers.IO) {

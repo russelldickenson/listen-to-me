@@ -12,6 +12,12 @@ interface EpisodeDao {
     @Query("SELECT * FROM episodes WHERE feedId = :feedId ORDER BY publishedAt DESC")
     fun observeByFeed(feedId: Long): Flow<List<Episode>>
 
+    @Query("SELECT * FROM episodes WHERE feedId = :feedId ORDER BY publishedAt DESC LIMIT :limit")
+    fun observeByFeedLimited(feedId: Long, limit: Int): Flow<List<Episode>>
+
+    @Query("SELECT COUNT(*) FROM episodes WHERE feedId = :feedId")
+    fun observeCountByFeed(feedId: Long): Flow<Int>
+
     @Query("SELECT * FROM episodes WHERE id = :episodeId")
     fun observeById(episodeId: Long): Flow<Episode?>
 

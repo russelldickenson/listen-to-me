@@ -7,11 +7,18 @@ import com.listentome.app.data.Episode
 import com.listentome.app.data.Feed
 import com.listentome.app.playback.PlaybackController
 import com.listentome.app.repository.PodcastRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+private const val PAGE_SIZE = 10
+
+@OptIn(ExperimentalCoroutinesApi::class)
 class EpisodeListViewModel(application: Application, private val feedId: Long) : AndroidViewModel(application) {
     private val repository = PodcastRepository.get(application)
     private val playbackController = PlaybackController.get(application)
@@ -19,8 +26,22 @@ class EpisodeListViewModel(application: Application, private val feedId: Long) :
     val feed: StateFlow<Feed?> = repository.observeFeed(feedId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val episodes: StateFlow<List<Episode>> = repository.observeEpisodes(feedId)
+    private val visibleCount = MutableStateFlow(PAGE_SIZE)
+
+    val episodes: StateFlow<List<Episode>> = visibleCount
+        .flatMapLatest { limit -> repository.observeEpisodes(feedId, limit) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val totalEpisodeCount: StateFlow<Int> = repository.observeEpisodeCount(feedId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val hasMoreEpisodes: StateFlow<Boolean> = combine(episodes, totalEpisodeCount) { shown, total ->
+        shown.size < total
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun loadMoreEpisodes() {
+        visibleCount.value += PAGE_SIZE
+    }
 
     fun refresh() {
         viewModelScope.launch { repository.refreshFeed(feedId) }

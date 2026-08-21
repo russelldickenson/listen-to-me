@@ -28,6 +28,11 @@ class PodcastRepository private constructor(context: Context) {
 
     fun observeEpisodes(feedId: Long): Flow<List<Episode>> = episodeDao.observeByFeed(feedId)
 
+    fun observeEpisodes(feedId: Long, limit: Int): Flow<List<Episode>> =
+        episodeDao.observeByFeedLimited(feedId, limit)
+
+    fun observeEpisodeCount(feedId: Long): Flow<Int> = episodeDao.observeCountByFeed(feedId)
+
     fun observeEpisode(episodeId: Long): Flow<Episode?> = episodeDao.observeById(episodeId)
 
     suspend fun addFeed(url: String): Feed = withContext(Dispatchers.IO) {

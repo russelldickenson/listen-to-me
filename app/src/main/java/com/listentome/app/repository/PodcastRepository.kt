@@ -35,6 +35,31 @@ class PodcastRepository private constructor(context: Context) {
 
     fun observeEpisode(episodeId: Long): Flow<Episode?> = episodeDao.observeById(episodeId)
 
+    fun observeQueue(): Flow<List<Episode>> = episodeDao.observeQueue()
+
+    suspend fun addToQueue(episode: Episode) = withContext(Dispatchers.IO) {
+        val nextPosition = (episodeDao.getMaxQueuePosition() ?: 0) + 1
+        episodeDao.setQueuePosition(episode.id, nextPosition)
+        if (episode.downloadState == DownloadState.NOT_DOWNLOADED && episode.audioUrl.isNotBlank()) {
+            downloadEpisode(episode)
+        }
+    }
+
+    suspend fun removeFromQueue(episodeId: Long) = withContext(Dispatchers.IO) {
+        episodeDao.setQueuePosition(episodeId, null)
+    }
+
+    suspend fun markAsPlayed(episodeId: Long) = withContext(Dispatchers.IO) {
+        episodeDao.markAsPlayed(episodeId)
+    }
+
+    /** Marks the given episode played, removes it from the queue, and returns the next queued episode, if any. */
+    suspend fun advanceQueuePast(episodeId: Long): Episode? = withContext(Dispatchers.IO) {
+        episodeDao.markAsPlayed(episodeId)
+        episodeDao.setQueuePosition(episodeId, null)
+        episodeDao.getFirstInQueue()
+    }
+
     suspend fun addFeed(url: String): Feed = withContext(Dispatchers.IO) {
         val normalizedUrl = url.trim()
         feedDao.getByUrl(normalizedUrl)?.let { return@withContext it }
@@ -121,7 +146,7 @@ class PodcastRepository private constructor(context: Context) {
             }
         }
         toPrune.forEach { episode ->
-            if (episode.downloadState == DownloadState.DOWNLOADED) {
+            if (episode.downloadState == DownloadState.DOWNLOADED && episode.queuePosition == null) {
                 deleteDownload(episode)
             }
         }

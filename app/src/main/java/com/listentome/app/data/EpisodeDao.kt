@@ -33,6 +33,18 @@ interface EpisodeDao {
     @Query("SELECT * FROM episodes WHERE downloadState = 'DOWNLOADED'")
     fun observeDownloaded(): Flow<List<Episode>>
 
+    @Query("SELECT * FROM episodes WHERE queuePosition IS NOT NULL ORDER BY queuePosition ASC")
+    fun observeQueue(): Flow<List<Episode>>
+
+    @Query("SELECT MAX(queuePosition) FROM episodes")
+    suspend fun getMaxQueuePosition(): Long?
+
+    @Query("UPDATE episodes SET queuePosition = :position WHERE id = :episodeId")
+    suspend fun setQueuePosition(episodeId: Long, position: Long?)
+
+    @Query("SELECT * FROM episodes WHERE queuePosition IS NOT NULL ORDER BY queuePosition ASC LIMIT 1")
+    suspend fun getFirstInQueue(): Episode?
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(episode: Episode): Long
 
@@ -41,6 +53,9 @@ interface EpisodeDao {
 
     @Query("UPDATE episodes SET playbackPositionMs = :positionMs, isFinished = :isFinished WHERE id = :episodeId")
     suspend fun updateProgress(episodeId: Long, positionMs: Long, isFinished: Boolean)
+
+    @Query("UPDATE episodes SET isFinished = 1 WHERE id = :episodeId")
+    suspend fun markAsPlayed(episodeId: Long)
 
     @Query("UPDATE episodes SET downloadState = :state, localFilePath = :path WHERE id = :episodeId")
     suspend fun updateDownloadState(episodeId: Long, state: DownloadState, path: String?)

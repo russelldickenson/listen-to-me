@@ -37,5 +37,6 @@ data class Episode(
     val downloadState: DownloadState = DownloadState.NOT_DOWNLOADED,
     val localFilePath: String? = null,
     val playbackPositionMs: Long = 0,
-    val isFinished: Boolean = false
+    val isFinished: Boolean = false,
+    val queuePosition: Long? = null
 )

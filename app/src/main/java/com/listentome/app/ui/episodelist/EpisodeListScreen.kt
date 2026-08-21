@@ -1,5 +1,7 @@
 package com.listentome.app.ui.episodelist
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,6 +16,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
@@ -59,6 +62,7 @@ fun EpisodeListScreen(
     val episodes by viewModel.episodes.collectAsState()
     val hasMoreEpisodes by viewModel.hasMoreEpisodes.collectAsState()
     var showSettings by remember { mutableStateOf(false) }
+    var actionsEpisode by remember { mutableStateOf<Episode?>(null) }
 
     Scaffold(
         topBar = {
@@ -95,7 +99,8 @@ fun EpisodeListScreen(
                             onPlay()
                         },
                         onDownload = { viewModel.download(episode) },
-                        onDeleteDownload = { viewModel.deleteDownload(episode) }
+                        onDeleteDownload = { viewModel.deleteDownload(episode) },
+                        onLongPress = { actionsEpisode = episode }
                     )
                 }
                 if (hasMoreEpisodes) {
@@ -126,6 +131,58 @@ fun EpisodeListScreen(
             }
         )
     }
+
+    actionsEpisode?.let { episode ->
+        EpisodeActionsDialog(
+            episode = episode,
+            onDismiss = { actionsEpisode = null },
+            onMarkAsPlayed = { viewModel.markAsPlayed(episode) },
+            onToggleQueue = {
+                if (episode.queuePosition != null) {
+                    viewModel.removeFromQueue(episode)
+                } else {
+                    viewModel.addToQueue(episode)
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun EpisodeActionsDialog(
+    episode: Episode,
+    onDismiss: () -> Unit,
+    onMarkAsPlayed: () -> Unit,
+    onToggleQueue: () -> Unit
+) {
+    val isQueued = episode.queuePosition != null
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(episode.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+        text = {
+            Column {
+                TextButton(
+                    onClick = { onMarkAsPlayed(); onDismiss() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Mark as played", modifier = Modifier.fillMaxWidth())
+                }
+                TextButton(
+                    onClick = { onToggleQueue(); onDismiss() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        if (isQueued) "Remove from queue" else "Add to queue",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
 
 @Composable
@@ -162,15 +219,22 @@ private fun FeedSettingsDialog(
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun EpisodeRow(
     episode: Episode,
     fallbackArtworkUrl: String?,
     onPlay: () -> Unit,
     onDownload: () -> Unit,
-    onDeleteDownload: () -> Unit
+    onDeleteDownload: () -> Unit,
+    onLongPress: () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp)
+            .combinedClickable(onClick = {}, onLongClick = onLongPress)
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -191,6 +255,12 @@ private fun EpisodeRow(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
                         Text("Played", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+                if (episode.queuePosition != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
+                        Text("In queue", style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }

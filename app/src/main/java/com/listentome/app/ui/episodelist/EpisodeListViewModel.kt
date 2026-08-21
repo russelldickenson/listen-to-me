@@ -76,10 +76,22 @@ class EpisodeListViewModel(application: Application, private val feedId: Long) :
                 episodeId = episode.id,
                 title = episode.title,
                 artist = feedTitle,
-                artworkUri = feed.value?.imageUrl,
+                artworkUri = episode.imageUrl ?: feed.value?.imageUrl,
                 uri = source,
                 startPositionMs = episode.playbackPositionMs
             )
         }
+    }
+
+    fun addToQueue(episode: Episode) {
+        viewModelScope.launch { repository.addToQueue(episode) }
+    }
+
+    fun removeFromQueue(episode: Episode) {
+        viewModelScope.launch { repository.removeFromQueue(episode.id) }
+    }
+
+    fun markAsPlayed(episode: Episode) {
+        viewModelScope.launch { repository.markAsPlayed(episode.id) }
     }
 }

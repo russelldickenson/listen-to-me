@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.listentome.app.data.Episode
 import com.listentome.app.data.Feed
 import com.listentome.app.playback.PlaybackController
+import com.listentome.app.playback.PlaybackUiState
 import com.listentome.app.repository.PodcastRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +26,8 @@ class EpisodeListViewModel(application: Application, private val feedId: Long) :
 
     val feed: StateFlow<Feed?> = repository.observeFeed(feedId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val playback: StateFlow<PlaybackUiState> = playbackController.state
 
     private val visibleCount = MutableStateFlow(PAGE_SIZE)
 
@@ -80,6 +83,16 @@ class EpisodeListViewModel(application: Application, private val feedId: Long) :
                 uri = source,
                 startPositionMs = episode.playbackPositionMs
             )
+        }
+    }
+
+    /** Plays the given episode, or toggles play/pause in place if it's already the current one. */
+    fun playOrToggle(episode: Episode, onStartedNewEpisode: () -> Unit) {
+        if (playback.value.currentEpisodeId == episode.id) {
+            viewModelScope.launch { playbackController.togglePlayPause() }
+        } else {
+            play(episode)
+            onStartedNewEpisode()
         }
     }
 

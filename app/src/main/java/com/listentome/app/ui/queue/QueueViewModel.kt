@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.listentome.app.data.Episode
 import com.listentome.app.data.Feed
 import com.listentome.app.playback.PlaybackController
+import com.listentome.app.playback.PlaybackUiState
 import com.listentome.app.repository.PodcastRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +19,8 @@ data class QueueItem(val episode: Episode, val feed: Feed?)
 class QueueViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = PodcastRepository.get(application)
     private val playbackController = PlaybackController.get(application)
+
+    val playback: StateFlow<PlaybackUiState> = playbackController.state
 
     val queue: StateFlow<List<QueueItem>> = combine(
         repository.observeQueue(),
@@ -47,7 +50,17 @@ class QueueViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { repository.removeFromQueue(episode.id) }
     }
 
-    fun play(item: QueueItem) {
+    /** Plays the given item, or toggles play/pause in place if it's already the current one. */
+    fun playOrToggle(item: QueueItem, onStartedNewEpisode: () -> Unit) {
+        if (playback.value.currentEpisodeId == item.episode.id) {
+            viewModelScope.launch { playbackController.togglePlayPause() }
+        } else {
+            play(item)
+            onStartedNewEpisode()
+        }
+    }
+
+    private fun play(item: QueueItem) {
         viewModelScope.launch {
             val source = item.episode.localFilePath
                 ?.let { android.net.Uri.fromFile(java.io.File(it)).toString() }

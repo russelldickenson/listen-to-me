@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
@@ -61,6 +62,7 @@ fun EpisodeListScreen(
     val feed by viewModel.feed.collectAsState()
     val episodes by viewModel.episodes.collectAsState()
     val hasMoreEpisodes by viewModel.hasMoreEpisodes.collectAsState()
+    val playback by viewModel.playback.collectAsState()
     var showSettings by remember { mutableStateOf(false) }
     var actionsEpisode by remember { mutableStateOf<Episode?>(null) }
 
@@ -91,13 +93,12 @@ fun EpisodeListScreen(
         } else {
             LazyColumn(contentPadding = PaddingValues(16.dp), modifier = Modifier.padding(padding)) {
                 items(episodes, key = { it.id }) { episode ->
+                    val isCurrentEpisode = playback.currentEpisodeId == episode.id
                     EpisodeRow(
                         episode = episode,
                         fallbackArtworkUrl = feed?.imageUrl,
-                        onPlay = {
-                            viewModel.play(episode)
-                            onPlay()
-                        },
+                        isPlaying = isCurrentEpisode && playback.isPlaying,
+                        onPlay = { viewModel.playOrToggle(episode, onStartedNewEpisode = onPlay) },
                         onDownload = { viewModel.download(episode) },
                         onDeleteDownload = { viewModel.deleteDownload(episode) },
                         onLongPress = { actionsEpisode = episode }
@@ -224,6 +225,7 @@ private fun FeedSettingsDialog(
 private fun EpisodeRow(
     episode: Episode,
     fallbackArtworkUrl: String?,
+    isPlaying: Boolean,
     onPlay: () -> Unit,
     onDownload: () -> Unit,
     onDeleteDownload: () -> Unit,
@@ -265,7 +267,10 @@ private fun EpisodeRow(
                 }
             }
             IconButton(onClick = onPlay) {
-                Icon(Icons.Default.PlayArrow, contentDescription = "Play")
+                Icon(
+                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (isPlaying) "Pause" else "Play"
+                )
             }
             when (episode.downloadState) {
                 DownloadState.NOT_DOWNLOADED -> IconButton(onClick = onDownload) {

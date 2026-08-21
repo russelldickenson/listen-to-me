@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,6 +45,7 @@ fun QueueScreen(
     onPlay: () -> Unit
 ) {
     val queue by viewModel.queue.collectAsState()
+    val playback by viewModel.playback.collectAsState()
 
     Scaffold(
         topBar = {
@@ -71,10 +73,8 @@ fun QueueScreen(
                         item = item,
                         isFirst = index == 0,
                         isLast = index == queue.lastIndex,
-                        onPlay = {
-                            viewModel.play(item)
-                            onPlay()
-                        },
+                        isPlaying = playback.currentEpisodeId == item.episode.id && playback.isPlaying,
+                        onPlay = { viewModel.playOrToggle(item, onStartedNewEpisode = onPlay) },
                         onRemove = { viewModel.removeFromQueue(item.episode) },
                         onMoveUp = { viewModel.moveUp(item.episode) },
                         onMoveDown = { viewModel.moveDown(item.episode) }
@@ -90,6 +90,7 @@ private fun QueueRow(
     item: QueueItem,
     isFirst: Boolean,
     isLast: Boolean,
+    isPlaying: Boolean,
     onPlay: () -> Unit,
     onRemove: () -> Unit,
     onMoveUp: () -> Unit,
@@ -129,7 +130,10 @@ private fun QueueRow(
                 }
             }
             IconButton(onClick = onPlay) {
-                Icon(Icons.Default.PlayArrow, contentDescription = "Play")
+                Icon(
+                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (isPlaying) "Pause" else "Play"
+                )
             }
             IconButton(onClick = onRemove) {
                 Icon(Icons.Default.Delete, contentDescription = "Remove from queue")

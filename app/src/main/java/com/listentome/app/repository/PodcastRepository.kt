@@ -65,11 +65,16 @@ class PodcastRepository private constructor(context: Context) {
         }
     }
 
-    suspend fun addFeed(url: String): Feed = withContext(Dispatchers.IO) {
+    /** Fetches and parses a feed without saving anything, so it can be previewed before adding. */
+    suspend fun previewFeed(url: String): com.listentome.app.network.ParsedFeed = withContext(Dispatchers.IO) {
+        fetchAndParse(url.trim())
+    }
+
+    suspend fun addFeed(url: String, prefetched: com.listentome.app.network.ParsedFeed? = null): Feed = withContext(Dispatchers.IO) {
         val normalizedUrl = url.trim()
         feedDao.getByUrl(normalizedUrl)?.let { return@withContext it }
 
-        val parsed = fetchAndParse(normalizedUrl)
+        val parsed = prefetched ?: fetchAndParse(normalizedUrl)
         val feedId = feedDao.insert(
             Feed(
                 url = normalizedUrl,

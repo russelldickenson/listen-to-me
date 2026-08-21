@@ -107,7 +107,8 @@ fun EpisodeListScreen(
                         episode = episode,
                         fallbackArtworkUrl = feed?.imageUrl,
                         isPlaying = isCurrentEpisode && playback.isPlaying,
-                        onPlay = { viewModel.playOrToggle(episode, onStartedNewEpisode = onPlay) },
+                        onOpenPlayer = onPlay,
+                        onPlayPauseClick = { viewModel.playOrToggle(episode, onStartedNewEpisode = onPlay) },
                         onLongPress = { actionsEpisode = episode }
                     )
                 }
@@ -272,14 +273,15 @@ private fun EpisodeRow(
     episode: Episode,
     fallbackArtworkUrl: String?,
     isPlaying: Boolean,
-    onPlay: () -> Unit,
+    onOpenPlayer: () -> Unit,
+    onPlayPauseClick: () -> Unit,
     onLongPress: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 12.dp)
-            .combinedClickable(onClick = {}, onLongClick = onLongPress)
+            .combinedClickable(onClick = onOpenPlayer, onLongClick = onLongPress)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -316,7 +318,7 @@ private fun EpisodeRow(
                     }
                 }
             }
-            IconButton(onClick = onPlay) {
+            IconButton(onClick = onPlayPauseClick) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (isPlaying) "Pause" else "Play"

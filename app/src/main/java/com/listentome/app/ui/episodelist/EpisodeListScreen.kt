@@ -1,6 +1,7 @@
 package com.listentome.app.ui.episodelist
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,25 +17,31 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PlaylistRemove
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -44,6 +51,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -99,8 +108,6 @@ fun EpisodeListScreen(
                         fallbackArtworkUrl = feed?.imageUrl,
                         isPlaying = isCurrentEpisode && playback.isPlaying,
                         onPlay = { viewModel.playOrToggle(episode, onStartedNewEpisode = onPlay) },
-                        onDownload = { viewModel.download(episode) },
-                        onDeleteDownload = { viewModel.deleteDownload(episode) },
                         onLongPress = { actionsEpisode = episode }
                     )
                 }
@@ -134,9 +141,11 @@ fun EpisodeListScreen(
     }
 
     actionsEpisode?.let { episode ->
-        EpisodeActionsDialog(
+        EpisodeActionsSheet(
             episode = episode,
             onDismiss = { actionsEpisode = null },
+            onDownload = { viewModel.download(episode) },
+            onDeleteDownload = { viewModel.deleteDownload(episode) },
             onMarkAsPlayed = { viewModel.markAsPlayed(episode) },
             onToggleQueue = {
                 if (episode.queuePosition != null) {
@@ -149,40 +158,77 @@ fun EpisodeListScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun EpisodeActionsDialog(
+private fun EpisodeActionsSheet(
     episode: Episode,
     onDismiss: () -> Unit,
+    onDownload: () -> Unit,
+    onDeleteDownload: () -> Unit,
     onMarkAsPlayed: () -> Unit,
     onToggleQueue: () -> Unit
 ) {
     val isQueued = episode.queuePosition != null
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(episode.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
-        text = {
-            Column {
-                TextButton(
-                    onClick = { onMarkAsPlayed(); onDismiss() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Mark as played", modifier = Modifier.fillMaxWidth())
-                }
-                TextButton(
-                    onClick = { onToggleQueue(); onDismiss() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        if (isQueued) "Remove from queue" else "Add to queue",
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+    val sheetState = rememberModalBottomSheetState()
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Text(
+            episode.title,
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        HorizontalDivider()
+
+        when (episode.downloadState) {
+            DownloadState.NOT_DOWNLOADED -> EpisodeActionItem(
+                icon = Icons.Default.Download,
+                label = "Download episode",
+                onClick = { onDownload(); onDismiss() }
+            )
+            DownloadState.DOWNLOADING -> EpisodeActionItem(
+                icon = Icons.Default.Download,
+                label = "Downloading…",
+                enabled = false,
+                onClick = {}
+            )
+            DownloadState.DOWNLOADED -> EpisodeActionItem(
+                icon = Icons.Default.Delete,
+                label = "Remove download",
+                onClick = { onDeleteDownload(); onDismiss() }
+            )
         }
+
+        EpisodeActionItem(
+            icon = Icons.Default.CheckCircle,
+            label = "Mark as played",
+            enabled = !episode.isFinished,
+            onClick = { onMarkAsPlayed(); onDismiss() }
+        )
+
+        EpisodeActionItem(
+            icon = if (isQueued) Icons.Default.PlaylistRemove else Icons.AutoMirrored.Filled.PlaylistAdd,
+            label = if (isQueued) "Remove from queue" else "Add to queue",
+            onClick = { onToggleQueue(); onDismiss() }
+        )
+    }
+}
+
+@Composable
+private fun EpisodeActionItem(
+    icon: ImageVector,
+    label: String,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    ListItem(
+        headlineContent = { Text(label) },
+        leadingContent = { Icon(icon, contentDescription = null) },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled, onClick = onClick)
     )
 }
 
@@ -227,8 +273,6 @@ private fun EpisodeRow(
     fallbackArtworkUrl: String?,
     isPlaying: Boolean,
     onPlay: () -> Unit,
-    onDownload: () -> Unit,
-    onDeleteDownload: () -> Unit,
     onLongPress: () -> Unit
 ) {
     Card(
@@ -265,21 +309,18 @@ private fun EpisodeRow(
                         Text("In queue", style = MaterialTheme.typography.bodySmall)
                     }
                 }
+                if (episode.downloadState == DownloadState.DOWNLOADED) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
+                        Text("Downloaded", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
             }
             IconButton(onClick = onPlay) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (isPlaying) "Pause" else "Play"
                 )
-            }
-            when (episode.downloadState) {
-                DownloadState.NOT_DOWNLOADED -> IconButton(onClick = onDownload) {
-                    Icon(Icons.Default.Download, contentDescription = "Download")
-                }
-                DownloadState.DOWNLOADING -> CircularProgressIndicator(modifier = Modifier.padding(8.dp))
-                DownloadState.DOWNLOADED -> IconButton(onClick = onDeleteDownload) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete download")
-                }
             }
         }
     }

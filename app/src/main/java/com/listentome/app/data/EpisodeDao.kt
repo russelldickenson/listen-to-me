@@ -1,0 +1,41 @@
+package com.listentome.app.data
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Update
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface EpisodeDao {
+    @Query("SELECT * FROM episodes WHERE feedId = :feedId ORDER BY publishedAt DESC")
+    fun observeByFeed(feedId: Long): Flow<List<Episode>>
+
+    @Query("SELECT * FROM episodes WHERE id = :episodeId")
+    fun observeById(episodeId: Long): Flow<Episode?>
+
+    @Query("SELECT * FROM episodes WHERE id = :episodeId")
+    suspend fun getById(episodeId: Long): Episode?
+
+    @Query("SELECT * FROM episodes WHERE feedId = :feedId AND guid = :guid LIMIT 1")
+    suspend fun getByGuid(feedId: Long, guid: String): Episode?
+
+    @Query("SELECT * FROM episodes WHERE feedId = :feedId ORDER BY publishedAt DESC")
+    suspend fun getByFeedSortedDesc(feedId: Long): List<Episode>
+
+    @Query("SELECT * FROM episodes WHERE downloadState = 'DOWNLOADED'")
+    fun observeDownloaded(): Flow<List<Episode>>
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insert(episode: Episode): Long
+
+    @Update
+    suspend fun update(episode: Episode)
+
+    @Query("UPDATE episodes SET playbackPositionMs = :positionMs, isFinished = :isFinished WHERE id = :episodeId")
+    suspend fun updateProgress(episodeId: Long, positionMs: Long, isFinished: Boolean)
+
+    @Query("UPDATE episodes SET downloadState = :state, localFilePath = :path WHERE id = :episodeId")
+    suspend fun updateDownloadState(episodeId: Long, state: DownloadState, path: String?)
+}

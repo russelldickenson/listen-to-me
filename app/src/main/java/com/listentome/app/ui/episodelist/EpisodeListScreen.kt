@@ -27,9 +27,11 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlaylistRemove
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
@@ -206,6 +208,11 @@ private fun EpisodeActionsSheet(
                 label = "Remove download",
                 onClick = { onDeleteDownload(); onDismiss() }
             )
+            DownloadState.FAILED -> EpisodeActionItem(
+                icon = Icons.Default.Refresh,
+                label = "Retry download",
+                onClick = { onDownload(); onDismiss() }
+            )
         }
 
         EpisodeActionItem(
@@ -359,6 +366,19 @@ private fun EpisodeRow(
                             .offset(x = 4.dp, y = 4.dp)
                             .size(18.dp)
                             .background(MaterialTheme.colorScheme.primary, CircleShape)
+                            .padding(3.dp)
+                    )
+                }
+                if (episode.downloadState == DownloadState.FAILED) {
+                    Icon(
+                        Icons.Default.ErrorOutline,
+                        contentDescription = "Download failed",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .offset(x = 4.dp, y = 4.dp)
+                            .size(18.dp)
+                            .background(MaterialTheme.colorScheme.error, CircleShape)
                             .padding(3.dp)
                     )
                 }

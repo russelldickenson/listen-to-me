@@ -8,7 +8,8 @@ import androidx.room.PrimaryKey
 enum class DownloadState {
     NOT_DOWNLOADED,
     DOWNLOADING,
-    DOWNLOADED
+    DOWNLOADED,
+    FAILED
 }
 
 @Entity(

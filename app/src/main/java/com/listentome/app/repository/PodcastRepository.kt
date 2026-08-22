@@ -52,10 +52,14 @@ class PodcastRepository private constructor(context: Context) {
     suspend fun addToQueue(episode: Episode) = withContext(Dispatchers.IO) {
         val nextPosition = (episodeDao.getMaxQueuePosition() ?: 0) + 1
         episodeDao.setQueuePosition(episode.id, nextPosition)
-        if (episode.downloadState == DownloadState.NOT_DOWNLOADED && episode.audioUrl.isNotBlank()) {
+        if (isEligibleForDownload(episode)) {
             downloadEpisode(episode)
         }
     }
+
+    private fun isEligibleForDownload(episode: Episode): Boolean =
+        (episode.downloadState == DownloadState.NOT_DOWNLOADED || episode.downloadState == DownloadState.FAILED) &&
+            episode.audioUrl.isNotBlank()
 
     suspend fun removeFromQueue(episodeId: Long) = withContext(Dispatchers.IO) {
         episodeDao.setQueuePosition(episodeId, null)
@@ -174,7 +178,7 @@ class PodcastRepository private constructor(context: Context) {
         val toPrune = episodes.drop(feed.keepLatestCount)
 
         toKeep.forEach { episode ->
-            if (episode.downloadState == DownloadState.NOT_DOWNLOADED && episode.audioUrl.isNotBlank()) {
+            if (isEligibleForDownload(episode)) {
                 downloadEpisode(episode)
             }
         }
@@ -199,7 +203,7 @@ class PodcastRepository private constructor(context: Context) {
             }
             enforceGlobalStorageCap()
         } catch (e: IOException) {
-            episodeDao.updateDownloadState(episode.id, DownloadState.NOT_DOWNLOADED, null)
+            episodeDao.updateDownloadState(episode.id, DownloadState.FAILED, null)
         }
     }
 

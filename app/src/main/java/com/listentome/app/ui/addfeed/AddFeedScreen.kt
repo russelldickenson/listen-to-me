@@ -8,8 +8,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +34,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.listentome.app.network.ParsedFeed
@@ -74,23 +80,34 @@ fun AddFeedScreen(
                     onCancel = viewModel::cancelPreview
                 )
             } else if (state is AddFeedUiState.Loading) {
-                CircularProgressIndicator(modifier = Modifier.padding(top = 32.dp))
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator()
+                    Text(
+                        "Loading preview…",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 12.dp)
+                    )
+                }
             } else {
+                val isError = state is AddFeedUiState.Error
                 OutlinedTextField(
                     value = url,
                     onValueChange = { url = it },
                     label = { Text("RSS feed URL") },
                     singleLine = true,
+                    isError = isError,
+                    supportingText = {
+                        if (state is AddFeedUiState.Error) {
+                            Text(state.message)
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
                     modifier = Modifier.fillMaxWidth()
                 )
-
-                if (state is AddFeedUiState.Error) {
-                    Text(
-                        text = state.message,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
 
                 Button(
                     onClick = { viewModel.fetchPreview(url) },
@@ -110,29 +127,37 @@ private fun FeedPreview(
     onCancel: () -> Unit
 ) {
     Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            AsyncImage(
-                model = parsed.imageUrl,
-                contentDescription = parsed.title,
-                modifier = Modifier
-                    .size(72.dp)
-                    .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop
-            )
-            Column(modifier = Modifier.padding(start = 12.dp)) {
-                Text(parsed.title, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "${parsed.items.size} episode${if (parsed.items.size == 1) "" else "s"}",
-                    style = MaterialTheme.typography.bodySmall
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AsyncImage(
+                        model = parsed.imageUrl,
+                        contentDescription = parsed.title,
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(RoundedCornerShape(12.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                    Column(modifier = Modifier.padding(start = 12.dp)) {
+                        Text(parsed.title, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "${parsed.items.size} episode${if (parsed.items.size == 1) "" else "s"}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+                HtmlText(
+                    html = parsed.description,
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
         }
-
-        HtmlText(
-            html = parsed.description,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(top = 16.dp)
-        )
 
         Row(
             modifier = Modifier.fillMaxWidth().padding(top = 24.dp),

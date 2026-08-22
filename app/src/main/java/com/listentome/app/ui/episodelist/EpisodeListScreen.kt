@@ -19,14 +19,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlaylistRemove
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -36,7 +39,6 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -128,6 +130,7 @@ fun EpisodeListScreen(
 
     if (showSettings) {
         FeedSettingsDialog(
+            feedTitle = feed?.title ?: "",
             currentKeepCount = feed?.keepLatestCount ?: 0,
             onDismiss = { showSettings = false },
             onSave = { count ->
@@ -235,36 +238,81 @@ private fun EpisodeActionItem(
 
 @Composable
 private fun FeedSettingsDialog(
+    feedTitle: String,
     currentKeepCount: Int,
     onDismiss: () -> Unit,
     onSave: (Int) -> Unit,
     onRemoveFeed: () -> Unit
 ) {
-    var text by remember { mutableStateOf(currentKeepCount.toString()) }
+    var count by remember { mutableStateOf(currentKeepCount) }
+    var showRemoveConfirm by remember { mutableStateOf(false) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Feed settings") },
         text = {
             Column {
                 Text("Automatically download the latest N episodes. Set to 0 to disable downloads.")
-                OutlinedTextField(
-                    value = text,
-                    onValueChange = { text = it.filter { c -> c.isDigit() } },
-                    label = { Text("Episodes to keep downloaded") },
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-                TextButton(onClick = onRemoveFeed, modifier = Modifier.padding(top = 16.dp)) {
-                    Text("Remove this podcast", color = MaterialTheme.colorScheme.error)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { if (count > 0) count-- }, enabled = count > 0) {
+                        Icon(Icons.Default.Remove, contentDescription = "Decrease")
+                    }
+                    Text(
+                        count.toString(),
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(horizontal = 24.dp)
+                    )
+                    IconButton(onClick = { count++ }) {
+                        Icon(Icons.Default.Add, contentDescription = "Increase")
+                    }
                 }
+
+                HorizontalDivider(modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
+
+                ListItem(
+                    headlineContent = { Text("Remove this podcast", color = MaterialTheme.colorScheme.error) },
+                    leadingContent = {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showRemoveConfirm = true }
+                )
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(text.toIntOrNull() ?: 0) }) { Text("Save") }
+            TextButton(onClick = { onSave(count) }) { Text("Save") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
+
+    if (showRemoveConfirm) {
+        AlertDialog(
+            onDismissRequest = { showRemoveConfirm = false },
+            title = { Text("Remove podcast?") },
+            text = { Text("This removes \"$feedTitle\" and deletes any downloaded episodes. This can't be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = onRemoveFeed,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) { Text("Remove") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRemoveConfirm = false }) { Text("Cancel") }
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)

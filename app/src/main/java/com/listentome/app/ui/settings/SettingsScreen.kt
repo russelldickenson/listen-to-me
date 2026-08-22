@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoDelete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
@@ -60,6 +61,7 @@ fun SettingsScreen(
     val wifiOnlyDownloads by viewModel.wifiOnlyDownloads.collectAsState()
     val defaultKeepLatestCount by viewModel.defaultKeepLatestCount.collectAsState()
     val maxDownloadStorageBytes by viewModel.maxDownloadStorageBytes.collectAsState()
+    val autoDeletePlayedEnabled by viewModel.autoDeletePlayedEnabled.collectAsState()
     val skipForwardSeconds by viewModel.skipForwardSeconds.collectAsState()
     val skipBackSeconds by viewModel.skipBackSeconds.collectAsState()
     val autoSkipBackOnResume by viewModel.autoSkipBackOnResume.collectAsState()
@@ -173,6 +175,20 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { editingStorageLimit = true }
+            )
+            ListItem(
+                headlineContent = { Text("Mark played episodes as auto-deleted") },
+                supportingContent = { Text("Remove a downloaded episode as soon as it's finished") },
+                leadingContent = { Icon(Icons.Default.AutoDelete, contentDescription = null) },
+                trailingContent = {
+                    Switch(
+                        checked = autoDeletePlayedEnabled,
+                        onCheckedChange = viewModel::setAutoDeletePlayedEnabled
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.setAutoDeletePlayedEnabled(!autoDeletePlayedEnabled) }
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))

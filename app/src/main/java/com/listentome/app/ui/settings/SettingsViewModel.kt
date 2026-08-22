@@ -61,6 +61,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         appSettings.setMaxDownloadStorageBytes(bytes)
     }
 
+    val autoDeletePlayedEnabled: StateFlow<Boolean> = appSettings.autoDeletePlayedEnabled
+
+    fun setAutoDeletePlayedEnabled(enabled: Boolean) {
+        appSettings.setAutoDeletePlayedEnabled(enabled)
+    }
+
     val skipForwardSeconds: StateFlow<Int> = appSettings.skipForwardSeconds
 
     fun setSkipForwardSeconds(seconds: Int) {

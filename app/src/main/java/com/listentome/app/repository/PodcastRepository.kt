@@ -63,6 +63,16 @@ class PodcastRepository private constructor(context: Context) {
 
     suspend fun markAsPlayed(episodeId: Long) = withContext(Dispatchers.IO) {
         episodeDao.markAsPlayed(episodeId)
+        maybeAutoDeletePlayed(episodeId)
+    }
+
+    /** Deletes the episode's download if "auto-delete played episodes" is enabled and it's downloaded. */
+    private suspend fun maybeAutoDeletePlayed(episodeId: Long) {
+        if (!appSettings.autoDeletePlayedEnabled.value) return
+        val episode = episodeDao.getById(episodeId) ?: return
+        if (episode.downloadState == DownloadState.DOWNLOADED) {
+            deleteDownload(episode)
+        }
     }
 
     /** Swaps the queue order of two episodes, used to move an item up/down in the queue. */
@@ -219,6 +229,7 @@ class PodcastRepository private constructor(context: Context) {
     suspend fun updatePlaybackProgress(episodeId: Long, positionMs: Long, isFinished: Boolean) =
         withContext(Dispatchers.IO) {
             episodeDao.updateProgress(episodeId, positionMs, isFinished)
+            if (isFinished) maybeAutoDeletePlayed(episodeId)
         }
 
     suspend fun exportOpml(): String = withContext(Dispatchers.IO) {

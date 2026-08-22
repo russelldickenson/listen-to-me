@@ -65,6 +65,14 @@ class AppSettings private constructor(context: Context) {
         _maxDownloadStorageBytes.value = bytes
     }
 
+    private val _autoDeletePlayedEnabled = MutableStateFlow(prefs.getBoolean(KEY_AUTO_DELETE_PLAYED, false))
+    val autoDeletePlayedEnabled: StateFlow<Boolean> = _autoDeletePlayedEnabled.asStateFlow()
+
+    fun setAutoDeletePlayedEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_AUTO_DELETE_PLAYED, enabled).apply()
+        _autoDeletePlayedEnabled.value = enabled
+    }
+
     companion object {
         private const val KEY_AUTOPLAY_QUEUE = "autoplay_queue_enabled"
         private const val KEY_SKIP_FORWARD_SECONDS = "skip_forward_seconds"
@@ -73,6 +81,7 @@ class AppSettings private constructor(context: Context) {
         private const val KEY_WIFI_ONLY_DOWNLOADS = "wifi_only_downloads"
         private const val KEY_DEFAULT_KEEP_LATEST_COUNT = "default_keep_latest_count"
         private const val KEY_MAX_DOWNLOAD_STORAGE_BYTES = "max_download_storage_bytes"
+        private const val KEY_AUTO_DELETE_PLAYED = "auto_delete_played_enabled"
         const val DEFAULT_SKIP_FORWARD_SECONDS = 30
         const val DEFAULT_SKIP_BACK_SECONDS = 15
         const val AUTO_SKIP_BACK_ON_RESUME_SECONDS = 3

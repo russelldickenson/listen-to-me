@@ -48,15 +48,25 @@ class AppSettings private constructor(context: Context) {
         _wifiOnlyDownloads.value = enabled
     }
 
+    private val _defaultKeepLatestCount = MutableStateFlow(prefs.getInt(KEY_DEFAULT_KEEP_LATEST_COUNT, DEFAULT_KEEP_LATEST_COUNT))
+    val defaultKeepLatestCount: StateFlow<Int> = _defaultKeepLatestCount.asStateFlow()
+
+    fun setDefaultKeepLatestCount(count: Int) {
+        prefs.edit().putInt(KEY_DEFAULT_KEEP_LATEST_COUNT, count).apply()
+        _defaultKeepLatestCount.value = count
+    }
+
     companion object {
         private const val KEY_AUTOPLAY_QUEUE = "autoplay_queue_enabled"
         private const val KEY_SKIP_FORWARD_SECONDS = "skip_forward_seconds"
         private const val KEY_SKIP_BACK_SECONDS = "skip_back_seconds"
         private const val KEY_AUTO_SKIP_BACK_ON_RESUME = "auto_skip_back_on_resume"
         private const val KEY_WIFI_ONLY_DOWNLOADS = "wifi_only_downloads"
+        private const val KEY_DEFAULT_KEEP_LATEST_COUNT = "default_keep_latest_count"
         const val DEFAULT_SKIP_FORWARD_SECONDS = 30
         const val DEFAULT_SKIP_BACK_SECONDS = 15
         const val AUTO_SKIP_BACK_ON_RESUME_SECONDS = 3
+        const val DEFAULT_KEEP_LATEST_COUNT = 3
 
         @Volatile
         private var instance: AppSettings? = null

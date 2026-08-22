@@ -49,6 +49,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         appSettings.setWifiOnlyDownloads(enabled)
     }
 
+    val defaultKeepLatestCount: StateFlow<Int> = appSettings.defaultKeepLatestCount
+
+    fun setDefaultKeepLatestCount(count: Int) {
+        appSettings.setDefaultKeepLatestCount(count)
+    }
+
     val skipForwardSeconds: StateFlow<Int> = appSettings.skipForwardSeconds
 
     fun setSkipForwardSeconds(seconds: Int) {

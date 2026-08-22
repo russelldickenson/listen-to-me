@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -55,12 +56,14 @@ fun SettingsScreen(
     val totalDownloadBytes by viewModel.totalDownloadBytes.collectAsState()
     val autoplayQueueEnabled by viewModel.autoplayQueueEnabled.collectAsState()
     val wifiOnlyDownloads by viewModel.wifiOnlyDownloads.collectAsState()
+    val defaultKeepLatestCount by viewModel.defaultKeepLatestCount.collectAsState()
     val skipForwardSeconds by viewModel.skipForwardSeconds.collectAsState()
     val skipBackSeconds by viewModel.skipBackSeconds.collectAsState()
     val autoSkipBackOnResume by viewModel.autoSkipBackOnResume.collectAsState()
 
     var editingSkipForward by remember { mutableStateOf(false) }
     var editingSkipBack by remember { mutableStateOf(false) }
+    var editingDefaultKeepLatestCount by remember { mutableStateOf(false) }
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/x-opml")
@@ -143,6 +146,14 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .clickable { viewModel.setWifiOnlyDownloads(!wifiOnlyDownloads) }
             )
+            ListItem(
+                headlineContent = { Text("Default keep-latest count") },
+                supportingContent = { Text("New feeds start by keeping the latest $defaultKeepLatestCount episodes downloaded") },
+                leadingContent = { Icon(Icons.Default.Tune, contentDescription = null) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { editingDefaultKeepLatestCount = true }
+            )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
@@ -205,6 +216,22 @@ fun SettingsScreen(
         )
     }
 
+    if (editingDefaultKeepLatestCount) {
+        NumberStepperDialog(
+            title = "Default keep-latest count",
+            currentValue = defaultKeepLatestCount,
+            unitLabel = "episodes",
+            step = 1,
+            minValue = 0,
+            maxValue = 50,
+            onDismiss = { editingDefaultKeepLatestCount = false },
+            onSave = { count ->
+                viewModel.setDefaultKeepLatestCount(count)
+                editingDefaultKeepLatestCount = false
+            }
+        )
+    }
+
     val currentMessage = message
     if (currentMessage != null) {
         val text = when (currentMessage) {
@@ -232,10 +259,30 @@ private fun SkipTimeDialog(
     onDismiss: () -> Unit,
     onSave: (Int) -> Unit
 ) {
-    var seconds by remember { mutableStateOf(currentSeconds) }
-    val step = 5
-    val minSeconds = 5
-    val maxSeconds = 120
+    NumberStepperDialog(
+        title = title,
+        currentValue = currentSeconds,
+        unitLabel = "seconds",
+        step = 5,
+        minValue = 5,
+        maxValue = 120,
+        onDismiss = onDismiss,
+        onSave = onSave
+    )
+}
+
+@Composable
+private fun NumberStepperDialog(
+    title: String,
+    currentValue: Int,
+    unitLabel: String,
+    step: Int,
+    minValue: Int,
+    maxValue: Int,
+    onDismiss: () -> Unit,
+    onSave: (Int) -> Unit
+) {
+    var value by remember { mutableStateOf(currentValue) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -247,26 +294,26 @@ private fun SkipTimeDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    onClick = { seconds = (seconds - step).coerceAtLeast(minSeconds) },
-                    enabled = seconds > minSeconds
+                    onClick = { value = (value - step).coerceAtLeast(minValue) },
+                    enabled = value > minValue
                 ) {
                     Icon(Icons.Default.Remove, contentDescription = "Decrease")
                 }
                 Text(
-                    "$seconds seconds",
+                    "$value $unitLabel",
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(horizontal = 24.dp)
                 )
                 IconButton(
-                    onClick = { seconds = (seconds + step).coerceAtMost(maxSeconds) },
-                    enabled = seconds < maxSeconds
+                    onClick = { value = (value + step).coerceAtMost(maxValue) },
+                    enabled = value < maxValue
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Increase")
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(seconds) }) {
+            TextButton(onClick = { onSave(value) }) {
                 Text("Save")
             }
         },

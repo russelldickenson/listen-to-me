@@ -92,7 +92,8 @@ class PodcastRepository private constructor(context: Context) {
                 title = parsed.title,
                 description = parsed.description,
                 imageUrl = parsed.imageUrl,
-                lastRefreshedAt = System.currentTimeMillis()
+                lastRefreshedAt = System.currentTimeMillis(),
+                keepLatestCount = appSettings.defaultKeepLatestCount.value
             )
         )
         parsed.items.forEach { item ->

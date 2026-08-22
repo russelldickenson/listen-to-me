@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,7 +42,8 @@ fun FeedListScreen(
     viewModel: FeedListViewModel,
     onAddFeed: () -> Unit,
     onOpenFeed: (Long) -> Unit,
-    onOpenQueue: () -> Unit
+    onOpenQueue: () -> Unit,
+    onOpenSettings: () -> Unit
 ) {
     val feeds by viewModel.feeds.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
@@ -57,6 +59,9 @@ fun FeedListScreen(
                     }
                     IconButton(onClick = viewModel::refreshAll, enabled = !isRefreshing) {
                         Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh all feeds")
+                    }
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings")
                     }
                 }
             )

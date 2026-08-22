@@ -21,6 +21,8 @@ import com.listentome.app.ui.player.PlayerScreen
 import com.listentome.app.ui.player.PlayerViewModel
 import com.listentome.app.ui.queue.QueueScreen
 import com.listentome.app.ui.queue.QueueViewModel
+import com.listentome.app.ui.settings.SettingsScreen
+import com.listentome.app.ui.settings.SettingsViewModel
 
 private object Routes {
     const val FEED_LIST = "feedList"
@@ -28,6 +30,7 @@ private object Routes {
     const val EPISODE_LIST = "episodeList/{feedId}"
     const val PLAYER = "player"
     const val QUEUE = "queue"
+    const val SETTINGS = "settings"
 
     fun episodeList(feedId: Long) = "episodeList/$feedId"
 }
@@ -45,7 +48,18 @@ fun ListenToMeNavGraph(application: Application) {
                 viewModel = viewModel,
                 onAddFeed = { navController.navigate(Routes.ADD_FEED) },
                 onOpenFeed = { feedId -> navController.navigate(Routes.episodeList(feedId)) },
-                onOpenQueue = { navController.navigate(Routes.QUEUE) }
+                onOpenQueue = { navController.navigate(Routes.QUEUE) },
+                onOpenSettings = { navController.navigate(Routes.SETTINGS) }
+            )
+        }
+
+        composable(Routes.SETTINGS) {
+            val viewModel: SettingsViewModel = viewModel(
+                factory = viewModelFactory { initializer { SettingsViewModel(application) } }
+            )
+            SettingsScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() }
             )
         }
 

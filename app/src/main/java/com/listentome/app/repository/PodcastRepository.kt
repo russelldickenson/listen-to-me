@@ -7,6 +7,8 @@ import com.listentome.app.data.Episode
 import com.listentome.app.data.Feed
 import com.listentome.app.download.EpisodeDownloadManager
 import com.listentome.app.network.RssParser
+import com.listentome.app.opml.OpmlParser
+import com.listentome.app.opml.OpmlWriter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -14,6 +16,9 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
+import java.io.InputStream
+
+data class OpmlImportResult(val added: Int, val skipped: Int, val failed: Int)
 
 class PodcastRepository private constructor(context: Context) {
     private val db = AppDatabase.get(context)
@@ -181,6 +186,31 @@ class PodcastRepository private constructor(context: Context) {
         withContext(Dispatchers.IO) {
             episodeDao.updateProgress(episodeId, positionMs, isFinished)
         }
+
+    suspend fun exportOpml(): String = withContext(Dispatchers.IO) {
+        OpmlWriter.write(feedDao.observeAll().first())
+    }
+
+    suspend fun importOpml(input: InputStream): OpmlImportResult = withContext(Dispatchers.IO) {
+        val outlines = input.use { OpmlParser.parse(it) }
+        var added = 0
+        var skipped = 0
+        var failed = 0
+        outlines.forEach { outline ->
+            val normalizedUrl = outline.xmlUrl.trim()
+            if (feedDao.getByUrl(normalizedUrl) != null) {
+                skipped++
+                return@forEach
+            }
+            try {
+                addFeed(normalizedUrl)
+                added++
+            } catch (e: Exception) {
+                failed++
+            }
+        }
+        OpmlImportResult(added = added, skipped = skipped, failed = failed)
+    }
 
     private fun fetchAndParse(url: String): com.listentome.app.network.ParsedFeed {
         val request = Request.Builder().url(url).build()

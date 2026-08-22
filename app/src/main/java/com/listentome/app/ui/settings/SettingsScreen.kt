@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -53,6 +54,7 @@ fun SettingsScreen(
     val message by viewModel.message.collectAsState()
     val totalDownloadBytes by viewModel.totalDownloadBytes.collectAsState()
     val autoplayQueueEnabled by viewModel.autoplayQueueEnabled.collectAsState()
+    val wifiOnlyDownloads by viewModel.wifiOnlyDownloads.collectAsState()
     val skipForwardSeconds by viewModel.skipForwardSeconds.collectAsState()
     val skipBackSeconds by viewModel.skipBackSeconds.collectAsState()
     val autoSkipBackOnResume by viewModel.autoSkipBackOnResume.collectAsState()
@@ -126,6 +128,20 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { viewModel.setAutoplayQueueEnabled(!autoplayQueueEnabled) }
+            )
+            ListItem(
+                headlineContent = { Text("Wi-Fi only downloads") },
+                supportingContent = { Text("Only download episodes when connected to Wi-Fi") },
+                leadingContent = { Icon(Icons.Default.Wifi, contentDescription = null) },
+                trailingContent = {
+                    Switch(
+                        checked = wifiOnlyDownloads,
+                        onCheckedChange = viewModel::setWifiOnlyDownloads
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.setWifiOnlyDownloads(!wifiOnlyDownloads) }
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))

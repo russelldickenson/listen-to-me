@@ -40,11 +40,20 @@ class AppSettings private constructor(context: Context) {
         _autoSkipBackOnResume.value = enabled
     }
 
+    private val _wifiOnlyDownloads = MutableStateFlow(prefs.getBoolean(KEY_WIFI_ONLY_DOWNLOADS, true))
+    val wifiOnlyDownloads: StateFlow<Boolean> = _wifiOnlyDownloads.asStateFlow()
+
+    fun setWifiOnlyDownloads(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_WIFI_ONLY_DOWNLOADS, enabled).apply()
+        _wifiOnlyDownloads.value = enabled
+    }
+
     companion object {
         private const val KEY_AUTOPLAY_QUEUE = "autoplay_queue_enabled"
         private const val KEY_SKIP_FORWARD_SECONDS = "skip_forward_seconds"
         private const val KEY_SKIP_BACK_SECONDS = "skip_back_seconds"
         private const val KEY_AUTO_SKIP_BACK_ON_RESUME = "auto_skip_back_on_resume"
+        private const val KEY_WIFI_ONLY_DOWNLOADS = "wifi_only_downloads"
         const val DEFAULT_SKIP_FORWARD_SECONDS = 30
         const val DEFAULT_SKIP_BACK_SECONDS = 15
         const val AUTO_SKIP_BACK_ON_RESUME_SECONDS = 3

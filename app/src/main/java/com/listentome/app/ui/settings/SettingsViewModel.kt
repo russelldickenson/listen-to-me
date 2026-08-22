@@ -43,6 +43,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         appSettings.setAutoplayQueueEnabled(enabled)
     }
 
+    val wifiOnlyDownloads: StateFlow<Boolean> = appSettings.wifiOnlyDownloads
+
+    fun setWifiOnlyDownloads(enabled: Boolean) {
+        appSettings.setWifiOnlyDownloads(enabled)
+    }
+
     val skipForwardSeconds: StateFlow<Int> = appSettings.skipForwardSeconds
 
     fun setSkipForwardSeconds(seconds: Int) {

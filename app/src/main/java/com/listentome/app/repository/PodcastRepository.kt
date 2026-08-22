@@ -6,6 +6,7 @@ import com.listentome.app.data.DownloadState
 import com.listentome.app.data.Episode
 import com.listentome.app.data.Feed
 import com.listentome.app.download.EpisodeDownloadManager
+import com.listentome.app.network.NetworkMonitor
 import com.listentome.app.network.RssParser
 import com.listentome.app.opml.OpmlParser
 import com.listentome.app.opml.OpmlWriter
@@ -22,6 +23,7 @@ import java.io.InputStream
 data class OpmlImportResult(val added: Int, val skipped: Int, val failed: Int)
 
 class PodcastRepository private constructor(context: Context) {
+    private val appContext = context.applicationContext
     private val db = AppDatabase.get(context)
     private val feedDao = db.feedDao()
     private val episodeDao = db.episodeDao()
@@ -172,6 +174,9 @@ class PodcastRepository private constructor(context: Context) {
     }
 
     suspend fun downloadEpisode(episode: Episode) = withContext(Dispatchers.IO) {
+        if (appSettings.wifiOnlyDownloads.value && !NetworkMonitor.isOnWifi(appContext)) {
+            return@withContext
+        }
         try {
             episodeDao.updateDownloadState(episode.id, DownloadState.DOWNLOADING, null)
             val file = downloadManager.download(episode.feedId, episode.id, episode.audioUrl)

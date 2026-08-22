@@ -6,9 +6,14 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.listentome.app.repository.OpmlImportResult
 import com.listentome.app.repository.PodcastRepository
+import com.listentome.app.settings.AppSettings
+import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 sealed interface SettingsMessage {
@@ -19,9 +24,24 @@ sealed interface SettingsMessage {
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = PodcastRepository.get(application)
+    private val appSettings = AppSettings.get(application)
 
     private val _message = MutableStateFlow<SettingsMessage?>(null)
     val message: StateFlow<SettingsMessage?> = _message.asStateFlow()
+
+    val totalDownloadBytes: StateFlow<Long> = repository.observeDownloadedEpisodes()
+        .map { episodes ->
+            episodes.sumOf { episode ->
+                episode.localFilePath?.let { File(it).takeIf(File::exists)?.length() } ?: 0L
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
+
+    val autoplayQueueEnabled: StateFlow<Boolean> = appSettings.autoplayQueueEnabled
+
+    fun setAutoplayQueueEnabled(enabled: Boolean) {
+        appSettings.setAutoplayQueueEnabled(enabled)
+    }
 
     fun clearMessage() {
         _message.value = null

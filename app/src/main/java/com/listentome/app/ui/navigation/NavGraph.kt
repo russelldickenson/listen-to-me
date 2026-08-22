@@ -13,6 +13,8 @@ import androidx.navigation.navArgument
 import androidx.navigation.NavType
 import com.listentome.app.ui.addfeed.AddFeedScreen
 import com.listentome.app.ui.addfeed.AddFeedViewModel
+import com.listentome.app.ui.downloads.DownloadsScreen
+import com.listentome.app.ui.downloads.DownloadsViewModel
 import com.listentome.app.ui.episodelist.EpisodeListScreen
 import com.listentome.app.ui.episodelist.EpisodeListViewModel
 import com.listentome.app.ui.feedlist.FeedListScreen
@@ -31,6 +33,7 @@ private object Routes {
     const val PLAYER = "player"
     const val QUEUE = "queue"
     const val SETTINGS = "settings"
+    const val DOWNLOADS = "downloads"
 
     fun episodeList(feedId: Long) = "episodeList/$feedId"
 }
@@ -58,6 +61,17 @@ fun ListenToMeNavGraph(application: Application) {
                 factory = viewModelFactory { initializer { SettingsViewModel(application) } }
             )
             SettingsScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() },
+                onOpenDownloads = { navController.navigate(Routes.DOWNLOADS) }
+            )
+        }
+
+        composable(Routes.DOWNLOADS) {
+            val viewModel: DownloadsViewModel = viewModel(
+                factory = viewModelFactory { initializer { DownloadsViewModel(application) } }
+            )
+            DownloadsScreen(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() }
             )

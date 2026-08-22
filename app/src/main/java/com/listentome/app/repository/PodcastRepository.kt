@@ -9,6 +9,7 @@ import com.listentome.app.download.EpisodeDownloadManager
 import com.listentome.app.network.RssParser
 import com.listentome.app.opml.OpmlParser
 import com.listentome.app.opml.OpmlWriter
+import com.listentome.app.settings.AppSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -26,8 +27,11 @@ class PodcastRepository private constructor(context: Context) {
     private val episodeDao = db.episodeDao()
     private val downloadManager = EpisodeDownloadManager(context)
     private val httpClient = OkHttpClient()
+    private val appSettings = AppSettings.get(context)
 
     fun observeFeeds(): Flow<List<Feed>> = feedDao.observeAll()
+
+    fun observeDownloadedEpisodes(): Flow<List<Episode>> = episodeDao.observeDownloaded()
 
     fun observeFeed(feedId: Long): Flow<Feed?> = feedDao.observeById(feedId)
 
@@ -172,6 +176,10 @@ class PodcastRepository private constructor(context: Context) {
             episodeDao.updateDownloadState(episode.id, DownloadState.DOWNLOADING, null)
             val file = downloadManager.download(episode.feedId, episode.id, episode.audioUrl)
             episodeDao.updateDownloadState(episode.id, DownloadState.DOWNLOADED, file.absolutePath)
+            if (appSettings.autoplayQueueEnabled.value && episode.queuePosition == null) {
+                val nextPosition = (episodeDao.getMaxQueuePosition() ?: 0) + 1
+                episodeDao.setQueuePosition(episode.id, nextPosition)
+            }
         } catch (e: IOException) {
             episodeDao.updateDownloadState(episode.id, DownloadState.NOT_DOWNLOADED, null)
         }

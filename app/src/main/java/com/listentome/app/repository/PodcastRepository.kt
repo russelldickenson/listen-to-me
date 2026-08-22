@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.File
 import java.io.IOException
 import java.io.InputStream
 
@@ -186,8 +187,27 @@ class PodcastRepository private constructor(context: Context) {
                 val nextPosition = (episodeDao.getMaxQueuePosition() ?: 0) + 1
                 episodeDao.setQueuePosition(episode.id, nextPosition)
             }
+            enforceGlobalStorageCap()
         } catch (e: IOException) {
             episodeDao.updateDownloadState(episode.id, DownloadState.NOT_DOWNLOADED, null)
+        }
+    }
+
+    /** Deletes oldest-published, non-queued downloads until total download storage is under the configured cap. */
+    private suspend fun enforceGlobalStorageCap() {
+        val capBytes = appSettings.maxDownloadStorageBytes.value
+        if (capBytes <= 0) return
+
+        val candidates = episodeDao.getEvictionCandidates().toMutableList()
+        var totalBytes = episodeDao.observeDownloaded().first().sumOf { episode ->
+            episode.localFilePath?.let { File(it).takeIf(File::exists)?.length() } ?: 0L
+        }
+
+        while (totalBytes > capBytes && candidates.isNotEmpty()) {
+            val oldest = candidates.removeAt(0)
+            val size = oldest.localFilePath?.let { File(it).takeIf(File::exists)?.length() } ?: 0L
+            deleteDownload(oldest)
+            totalBytes -= size
         }
     }
 

@@ -55,6 +55,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         appSettings.setDefaultKeepLatestCount(count)
     }
 
+    val maxDownloadStorageBytes: StateFlow<Long> = appSettings.maxDownloadStorageBytes
+
+    fun setMaxDownloadStorageBytes(bytes: Long) {
+        appSettings.setMaxDownloadStorageBytes(bytes)
+    }
+
     val skipForwardSeconds: StateFlow<Int> = appSettings.skipForwardSeconds
 
     fun setSkipForwardSeconds(seconds: Int) {

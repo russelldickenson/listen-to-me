@@ -33,6 +33,10 @@ interface EpisodeDao {
     @Query("SELECT * FROM episodes WHERE downloadState = 'DOWNLOADED'")
     fun observeDownloaded(): Flow<List<Episode>>
 
+    /** Downloaded, not-queued episodes ordered oldest-published-first, for global storage cap eviction. */
+    @Query("SELECT * FROM episodes WHERE downloadState = 'DOWNLOADED' AND queuePosition IS NULL ORDER BY publishedAt ASC")
+    suspend fun getEvictionCandidates(): List<Episode>
+
     @Query("SELECT * FROM episodes WHERE queuePosition IS NOT NULL ORDER BY queuePosition ASC")
     fun observeQueue(): Flow<List<Episode>>
 

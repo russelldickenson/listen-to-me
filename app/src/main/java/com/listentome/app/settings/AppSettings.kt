@@ -56,6 +56,15 @@ class AppSettings private constructor(context: Context) {
         _defaultKeepLatestCount.value = count
     }
 
+    /** Max total bytes of downloaded episodes to keep on disk. 0 means unlimited. */
+    private val _maxDownloadStorageBytes = MutableStateFlow(prefs.getLong(KEY_MAX_DOWNLOAD_STORAGE_BYTES, DEFAULT_MAX_DOWNLOAD_STORAGE_BYTES))
+    val maxDownloadStorageBytes: StateFlow<Long> = _maxDownloadStorageBytes.asStateFlow()
+
+    fun setMaxDownloadStorageBytes(bytes: Long) {
+        prefs.edit().putLong(KEY_MAX_DOWNLOAD_STORAGE_BYTES, bytes).apply()
+        _maxDownloadStorageBytes.value = bytes
+    }
+
     companion object {
         private const val KEY_AUTOPLAY_QUEUE = "autoplay_queue_enabled"
         private const val KEY_SKIP_FORWARD_SECONDS = "skip_forward_seconds"
@@ -63,10 +72,12 @@ class AppSettings private constructor(context: Context) {
         private const val KEY_AUTO_SKIP_BACK_ON_RESUME = "auto_skip_back_on_resume"
         private const val KEY_WIFI_ONLY_DOWNLOADS = "wifi_only_downloads"
         private const val KEY_DEFAULT_KEEP_LATEST_COUNT = "default_keep_latest_count"
+        private const val KEY_MAX_DOWNLOAD_STORAGE_BYTES = "max_download_storage_bytes"
         const val DEFAULT_SKIP_FORWARD_SECONDS = 30
         const val DEFAULT_SKIP_BACK_SECONDS = 15
         const val AUTO_SKIP_BACK_ON_RESUME_SECONDS = 3
         const val DEFAULT_KEEP_LATEST_COUNT = 3
+        const val DEFAULT_MAX_DOWNLOAD_STORAGE_BYTES = 0L
 
         @Volatile
         private var instance: AppSettings? = null

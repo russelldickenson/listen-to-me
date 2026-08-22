@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.SdStorage
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.AlertDialog
@@ -29,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -57,6 +59,7 @@ fun SettingsScreen(
     val autoplayQueueEnabled by viewModel.autoplayQueueEnabled.collectAsState()
     val wifiOnlyDownloads by viewModel.wifiOnlyDownloads.collectAsState()
     val defaultKeepLatestCount by viewModel.defaultKeepLatestCount.collectAsState()
+    val maxDownloadStorageBytes by viewModel.maxDownloadStorageBytes.collectAsState()
     val skipForwardSeconds by viewModel.skipForwardSeconds.collectAsState()
     val skipBackSeconds by viewModel.skipBackSeconds.collectAsState()
     val autoSkipBackOnResume by viewModel.autoSkipBackOnResume.collectAsState()
@@ -64,6 +67,7 @@ fun SettingsScreen(
     var editingSkipForward by remember { mutableStateOf(false) }
     var editingSkipBack by remember { mutableStateOf(false) }
     var editingDefaultKeepLatestCount by remember { mutableStateOf(false) }
+    var editingStorageLimit by remember { mutableStateOf(false) }
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/x-opml")
@@ -154,6 +158,22 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .clickable { editingDefaultKeepLatestCount = true }
             )
+            ListItem(
+                headlineContent = { Text("Storage limit") },
+                supportingContent = {
+                    Text(
+                        if (maxDownloadStorageBytes <= 0) {
+                            "Unlimited"
+                        } else {
+                            "Oldest downloads are removed automatically past ${storageLimitLabel(maxDownloadStorageBytes)}"
+                        }
+                    )
+                },
+                leadingContent = { Icon(Icons.Default.SdStorage, contentDescription = null) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { editingStorageLimit = true }
+            )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
@@ -228,6 +248,17 @@ fun SettingsScreen(
             onSave = { count ->
                 viewModel.setDefaultKeepLatestCount(count)
                 editingDefaultKeepLatestCount = false
+            }
+        )
+    }
+
+    if (editingStorageLimit) {
+        StorageLimitDialog(
+            currentBytes = maxDownloadStorageBytes,
+            onDismiss = { editingStorageLimit = false },
+            onSave = { bytes ->
+                viewModel.setMaxDownloadStorageBytes(bytes)
+                editingStorageLimit = false
             }
         )
     }
@@ -314,6 +345,57 @@ private fun NumberStepperDialog(
         },
         confirmButton = {
             TextButton(onClick = { onSave(value) }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+private val storageLimitPresets: List<Pair<Long, String>> = listOf(
+    0L to "Unlimited",
+    250L * 1024 * 1024 to "250 MB",
+    500L * 1024 * 1024 to "500 MB",
+    1024L * 1024 * 1024 to "1 GB",
+    2L * 1024 * 1024 * 1024 to "2 GB",
+    5L * 1024 * 1024 * 1024 to "5 GB"
+)
+
+private fun storageLimitLabel(bytes: Long): String =
+    storageLimitPresets.firstOrNull { it.first == bytes }?.second ?: formatBytes(bytes)
+
+@Composable
+private fun StorageLimitDialog(
+    currentBytes: Long,
+    onDismiss: () -> Unit,
+    onSave: (Long) -> Unit
+) {
+    var selected by remember { mutableStateOf(currentBytes) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Storage limit") },
+        text = {
+            Column {
+                storageLimitPresets.forEach { (bytes, label) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selected = bytes },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(selected = selected == bytes, onClick = { selected = bytes })
+                        Text(label, modifier = Modifier.padding(start = 8.dp))
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(selected) }) {
                 Text("Save")
             }
         },

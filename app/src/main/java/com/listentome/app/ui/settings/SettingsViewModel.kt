@@ -43,6 +43,24 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         appSettings.setAutoplayQueueEnabled(enabled)
     }
 
+    val skipForwardSeconds: StateFlow<Int> = appSettings.skipForwardSeconds
+
+    fun setSkipForwardSeconds(seconds: Int) {
+        appSettings.setSkipForwardSeconds(seconds)
+    }
+
+    val skipBackSeconds: StateFlow<Int> = appSettings.skipBackSeconds
+
+    fun setSkipBackSeconds(seconds: Int) {
+        appSettings.setSkipBackSeconds(seconds)
+    }
+
+    val autoSkipBackOnResume: StateFlow<Boolean> = appSettings.autoSkipBackOnResume
+
+    fun setAutoSkipBackOnResume(enabled: Boolean) {
+        appSettings.setAutoSkipBackOnResume(enabled)
+    }
+
     fun clearMessage() {
         _message.value = null
     }

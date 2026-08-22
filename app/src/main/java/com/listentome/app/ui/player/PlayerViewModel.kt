@@ -8,6 +8,7 @@ import com.listentome.app.data.Feed
 import com.listentome.app.playback.PlaybackController
 import com.listentome.app.playback.PlaybackUiState
 import com.listentome.app.repository.PodcastRepository
+import com.listentome.app.settings.AppSettings
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +21,10 @@ import kotlinx.coroutines.launch
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = PodcastRepository.get(application)
     private val playbackController = PlaybackController.get(application)
+    private val appSettings = AppSettings.get(application)
+
+    val skipForwardSeconds: StateFlow<Int> = appSettings.skipForwardSeconds
+    val skipBackSeconds: StateFlow<Int> = appSettings.skipBackSeconds
 
     val playback: StateFlow<PlaybackUiState> = playbackController.state
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlaybackUiState())

@@ -8,6 +8,7 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
+import com.listentome.app.settings.AppSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -28,6 +29,7 @@ data class PlaybackUiState(
 
 class PlaybackController private constructor(private val context: Context) {
 
+    private val appSettings = AppSettings.get(context)
     private var controller: MediaController? = null
     private val _state = MutableStateFlow(PlaybackUiState())
     val state: StateFlow<PlaybackUiState> = _state.asStateFlow()
@@ -95,7 +97,15 @@ class PlaybackController private constructor(private val context: Context) {
 
     suspend fun togglePlayPause() {
         val c = ensureController()
-        if (c.isPlaying) c.pause() else c.play()
+        if (c.isPlaying) {
+            c.pause()
+        } else {
+            if (appSettings.autoSkipBackOnResume.value) {
+                val skipMs = AppSettings.AUTO_SKIP_BACK_ON_RESUME_SECONDS * 1000L
+                c.seekTo((c.currentPosition - skipMs).coerceAtLeast(0))
+            }
+            c.play()
+        }
     }
 
     suspend fun seekTo(positionMs: Long) {

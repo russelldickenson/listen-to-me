@@ -12,10 +12,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Forward30
+import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -65,6 +65,8 @@ fun PlayerScreen(
     val playback by viewModel.playback.collectAsState()
     val episode by viewModel.currentEpisode.collectAsState()
     val feed by viewModel.currentFeed.collectAsState()
+    val skipForwardSeconds by viewModel.skipForwardSeconds.collectAsState()
+    val skipBackSeconds by viewModel.skipBackSeconds.collectAsState()
 
     val context = LocalContext.current
     val artworkUrl = episode?.imageUrl ?: feed?.imageUrl
@@ -180,8 +182,8 @@ fun PlayerScreen(
                         horizontalArrangement = Arrangement.spacedBy(32.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(onClick = { viewModel.skip(-10_000) }, modifier = Modifier.size(48.dp)) {
-                            Icon(Icons.Default.Replay10, contentDescription = "Back 10 seconds", modifier = Modifier.size(32.dp))
+                        IconButton(onClick = { viewModel.skip(-skipBackSeconds * 1000L) }, modifier = Modifier.size(48.dp)) {
+                            Icon(Icons.Default.FastRewind, contentDescription = "Back $skipBackSeconds seconds", modifier = Modifier.size(32.dp))
                         }
                         FilledIconButton(
                             onClick = viewModel::togglePlayPause,
@@ -197,8 +199,8 @@ fun PlayerScreen(
                                 modifier = Modifier.size(40.dp)
                             )
                         }
-                        IconButton(onClick = { viewModel.skip(30_000) }, modifier = Modifier.size(48.dp)) {
-                            Icon(Icons.Default.Forward30, contentDescription = "Forward 30 seconds", modifier = Modifier.size(32.dp))
+                        IconButton(onClick = { viewModel.skip(skipForwardSeconds * 1000L) }, modifier = Modifier.size(48.dp)) {
+                            Icon(Icons.Default.FastForward, contentDescription = "Forward $skipForwardSeconds seconds", modifier = Modifier.size(32.dp))
                         }
                     }
 

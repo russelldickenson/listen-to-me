@@ -87,13 +87,13 @@ class EpisodeListViewModel(application: Application, private val feedId: Long) :
     }
 
     /** Plays the given episode, or toggles play/pause in place if it's already the current one. */
-    fun playOrToggle(episode: Episode, onStartedNewEpisode: () -> Unit) {
+    fun playOrToggle(episode: Episode, onOpenPlayer: () -> Unit) {
         if (playback.value.currentEpisodeId == episode.id) {
             viewModelScope.launch { playbackController.togglePlayPause() }
         } else {
             play(episode)
-            onStartedNewEpisode()
         }
+        onOpenPlayer()
     }
 
     fun addToQueue(episode: Episode) {

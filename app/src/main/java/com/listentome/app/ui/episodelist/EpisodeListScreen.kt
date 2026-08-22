@@ -116,7 +116,7 @@ fun EpisodeListScreen(
                         fallbackArtworkUrl = feed?.imageUrl,
                         isPlaying = isCurrentEpisode && playback.isPlaying,
                         onOpenPlayer = onPlay,
-                        onPlayPauseClick = { viewModel.playOrToggle(episode, onStartedNewEpisode = onPlay) },
+                        onPlayPauseClick = { viewModel.playOrToggle(episode, onOpenPlayer = onPlay) },
                         onLongPress = { actionsEpisode = episode }
                     )
                 }

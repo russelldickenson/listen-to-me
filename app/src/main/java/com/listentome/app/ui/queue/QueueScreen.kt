@@ -74,7 +74,7 @@ fun QueueScreen(
                         isFirst = index == 0,
                         isLast = index == queue.lastIndex,
                         isPlaying = playback.currentEpisodeId == item.episode.id && playback.isPlaying,
-                        onPlay = { viewModel.playOrToggle(item, onStartedNewEpisode = onPlay) },
+                        onPlay = { viewModel.playOrToggle(item, onOpenPlayer = onPlay) },
                         onRemove = { viewModel.removeFromQueue(item.episode) },
                         onMoveUp = { viewModel.moveUp(item.episode) },
                         onMoveDown = { viewModel.moveDown(item.episode) }

@@ -51,13 +51,13 @@ class QueueViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /** Plays the given item, or toggles play/pause in place if it's already the current one. */
-    fun playOrToggle(item: QueueItem, onStartedNewEpisode: () -> Unit) {
+    fun playOrToggle(item: QueueItem, onOpenPlayer: () -> Unit) {
         if (playback.value.currentEpisodeId == item.episode.id) {
             viewModelScope.launch { playbackController.togglePlayPause() }
         } else {
             play(item)
-            onStartedNewEpisode()
         }
+        onOpenPlayer()
     }
 
     private fun play(item: QueueItem) {

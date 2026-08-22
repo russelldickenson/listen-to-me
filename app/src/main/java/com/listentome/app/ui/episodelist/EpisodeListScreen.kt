@@ -1,17 +1,21 @@
 package com.listentome.app.ui.episodelist
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -336,14 +340,29 @@ private fun EpisodeRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            AsyncImage(
-                model = episode.imageUrl ?: fallbackArtworkUrl,
-                contentDescription = episode.title,
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop
-            )
+            Box {
+                AsyncImage(
+                    model = episode.imageUrl ?: fallbackArtworkUrl,
+                    contentDescription = episode.title,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+                if (episode.downloadState == DownloadState.DOWNLOADED) {
+                    Icon(
+                        Icons.Default.Download,
+                        contentDescription = "Downloaded",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .offset(x = 4.dp, y = 4.dp)
+                            .size(18.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape)
+                            .padding(3.dp)
+                    )
+                }
+            }
             Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
                 Text(episode.title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text(formatDate(episode.publishedAt), style = MaterialTheme.typography.bodySmall)
@@ -357,12 +376,6 @@ private fun EpisodeRow(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
                         Text("In queue", style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-                if (episode.downloadState == DownloadState.DOWNLOADED) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
-                        Text("Downloaded", style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }

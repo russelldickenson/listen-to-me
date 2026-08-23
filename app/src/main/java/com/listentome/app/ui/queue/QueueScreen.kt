@@ -1,5 +1,6 @@
 package com.listentome.app.ui.queue
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,7 +44,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.listentome.app.ui.components.EpisodeArtwork
 import com.listentome.app.ui.components.EpisodeInfoColumn
-import com.listentome.app.ui.components.EpisodePlayButton
 import kotlin.math.roundToInt
 
 private val QueueRowHeight = 108.dp
@@ -56,7 +56,6 @@ fun QueueScreen(
     onPlay: () -> Unit
 ) {
     val queue by viewModel.queue.collectAsState()
-    val playback by viewModel.playback.collectAsState()
 
     var items by remember { mutableStateOf(queue) }
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
@@ -92,7 +91,6 @@ fun QueueScreen(
                     val isDragging = index == draggedIndex
                     QueueRow(
                         item = item,
-                        isPlaying = playback.currentEpisodeId == item.episode.id && playback.isPlaying,
                         isDragging = isDragging,
                         onPlay = { viewModel.playOrToggle(item, onOpenPlayer = onPlay) },
                         onRemove = { viewModel.removeFromQueue(item.episode) },
@@ -138,14 +136,13 @@ fun QueueScreen(
 @Composable
 private fun QueueRow(
     item: QueueItem,
-    isPlaying: Boolean,
     isDragging: Boolean,
     onPlay: () -> Unit,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.fillMaxWidth().height(QueueRowHeight).padding(bottom = 12.dp),
+        modifier = modifier.fillMaxWidth().height(QueueRowHeight).padding(bottom = 12.dp).clickable(onClick = onPlay),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 1.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isDragging) {
@@ -177,7 +174,6 @@ private fun QueueRow(
                 subtitle = item.feed?.title,
                 modifier = Modifier.weight(1f).padding(start = 12.dp)
             )
-            EpisodePlayButton(isPlaying = isPlaying, onClick = onPlay)
             var showMenu by remember { mutableStateOf(false) }
             Box {
                 IconButton(onClick = { showMenu = true }) {

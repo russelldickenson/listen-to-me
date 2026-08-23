@@ -72,7 +72,6 @@ import com.listentome.app.data.Episode
 import com.listentome.app.data.Feed
 import com.listentome.app.ui.components.EpisodeArtwork
 import com.listentome.app.ui.components.EpisodeInfoColumn
-import com.listentome.app.ui.components.EpisodePlayButton
 import com.listentome.app.ui.components.HtmlText
 import kotlin.math.roundToInt
 
@@ -88,7 +87,6 @@ fun EpisodeListScreen(
     val feed by viewModel.feed.collectAsState()
     val episodes by viewModel.episodes.collectAsState()
     val hasMoreEpisodes by viewModel.hasMoreEpisodes.collectAsState()
-    val playback by viewModel.playback.collectAsState()
     val downloadProgress by viewModel.downloadProgress.collectAsState()
     var showSettings by remember { mutableStateOf(false) }
     var showDetails by remember { mutableStateOf(false) }
@@ -143,15 +141,12 @@ fun EpisodeListScreen(
         } else {
             LazyColumn(contentPadding = PaddingValues(16.dp), modifier = Modifier.padding(padding)) {
                 itemsIndexed(items, key = { _, episode -> episode.id }) { index, episode ->
-                    val isCurrentEpisode = playback.currentEpisodeId == episode.id
                     val isDragging = index == draggedIndex
                     EpisodeRow(
                         episode = episode,
                         fallbackArtworkUrl = feed?.imageUrl,
-                        isPlaying = isCurrentEpisode && playback.isPlaying,
                         downloadProgress = downloadProgress[episode.id],
                         isDragging = isDragging,
-                        onOpenPlayer = onPlay,
                         onPlayPauseClick = { viewModel.playOrToggle(episode, onOpenPlayer = onPlay) },
                         onOpenActions = { actionsEpisodeId = episode.id },
                         modifier = Modifier
@@ -458,10 +453,8 @@ private fun FeedSettingsDialog(
 private fun EpisodeRow(
     episode: Episode,
     fallbackArtworkUrl: String?,
-    isPlaying: Boolean,
     downloadProgress: Float?,
     isDragging: Boolean,
-    onOpenPlayer: () -> Unit,
     onPlayPauseClick: () -> Unit,
     onOpenActions: () -> Unit,
     modifier: Modifier = Modifier
@@ -471,7 +464,7 @@ private fun EpisodeRow(
             .fillMaxWidth()
             .height(EpisodeRowHeight)
             .padding(bottom = 12.dp)
-            .clickable(onClick = onOpenPlayer),
+            .clickable(onClick = onPlayPauseClick),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 1.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isDragging) {
@@ -502,7 +495,6 @@ private fun EpisodeRow(
                 isFinished = episode.isFinished,
                 modifier = Modifier.weight(1f).padding(start = 12.dp)
             )
-            EpisodePlayButton(isPlaying = isPlaying, onClick = onPlayPauseClick)
             IconButton(onClick = onOpenActions) {
                 Icon(Icons.Default.MoreVert, contentDescription = "Episode actions")
             }

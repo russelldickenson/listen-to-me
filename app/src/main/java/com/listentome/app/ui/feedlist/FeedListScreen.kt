@@ -2,7 +2,7 @@ package com.listentome.app.ui.feedlist
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,11 +19,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -134,38 +134,39 @@ fun FeedListScreen(
                         FeedRow(
                             feed = feed,
                             onClick = { onOpenFeed(feed.id) },
+                            isDragging = isDragging,
                             modifier = Modifier
                                 .zIndex(if (isDragging) 1f else 0f)
-                                .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f },
-                            dragHandleModifier = Modifier.pointerInput(feed.id) {
-                                detectVerticalDragGestures(
-                                    onDragStart = {
-                                        draggedIndex = items.indexOfFirst { it.id == feed.id }
-                                        dragOffsetY = 0f
-                                    },
-                                    onDragEnd = {
-                                        draggedIndex = null
-                                        dragOffsetY = 0f
-                                        viewModel.reorderFeeds(items.map { it.id })
-                                    },
-                                    onDragCancel = {
-                                        draggedIndex = null
-                                        dragOffsetY = 0f
-                                    },
-                                    onVerticalDrag = { change, dragAmount ->
-                                        change.consume()
-                                        dragOffsetY += dragAmount
-                                        val from = draggedIndex ?: return@detectVerticalDragGestures
-                                        val to = (from + (dragOffsetY / itemHeightPx).roundToInt())
-                                            .coerceIn(0, items.lastIndex)
-                                        if (to != from) {
-                                            items = items.toMutableList().apply { add(to, removeAt(from)) }
-                                            dragOffsetY -= (to - from) * itemHeightPx
-                                            draggedIndex = to
+                                .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
+                                .pointerInput(feed.id) {
+                                    detectDragGesturesAfterLongPress(
+                                        onDragStart = {
+                                            draggedIndex = items.indexOfFirst { it.id == feed.id }
+                                            dragOffsetY = 0f
+                                        },
+                                        onDragEnd = {
+                                            draggedIndex = null
+                                            dragOffsetY = 0f
+                                            viewModel.reorderFeeds(items.map { it.id })
+                                        },
+                                        onDragCancel = {
+                                            draggedIndex = null
+                                            dragOffsetY = 0f
+                                        },
+                                        onDrag = { change, dragAmount ->
+                                            change.consume()
+                                            dragOffsetY += dragAmount.y
+                                            val from = draggedIndex ?: return@detectDragGesturesAfterLongPress
+                                            val to = (from + (dragOffsetY / itemHeightPx).roundToInt())
+                                                .coerceIn(0, items.lastIndex)
+                                            if (to != from) {
+                                                items = items.toMutableList().apply { add(to, removeAt(from)) }
+                                                dragOffsetY -= (to - from) * itemHeightPx
+                                                draggedIndex = to
+                                            }
                                         }
-                                    }
-                                )
-                            }
+                                    )
+                                }
                         )
                     }
                 }
@@ -216,40 +217,40 @@ private fun EmptyState(onAddFeed: () -> Unit) {
 private fun FeedRow(
     feed: Feed,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    dragHandleModifier: Modifier = Modifier
+    isDragging: Boolean,
+    modifier: Modifier = Modifier
 ) {
-    Card(modifier = modifier.fillMaxWidth().height(FeedRowHeight).padding(bottom = 12.dp)) {
+    Card(
+        modifier = modifier.fillMaxWidth().height(FeedRowHeight).padding(bottom = 12.dp).clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 1.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isDragging) {
+                MaterialTheme.colorScheme.surfaceVariant
+            } else {
+                CardDefaults.cardColors().containerColor
+            }
+        )
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                Icons.Default.DragHandle,
-                contentDescription = "Drag to reorder",
-                modifier = dragHandleModifier.padding(end = 8.dp)
+            AsyncImage(
+                model = feed.imageUrl,
+                contentDescription = feed.title,
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop
             )
-            Row(
-                modifier = Modifier.weight(1f).clickable(onClick = onClick),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                AsyncImage(
-                    model = feed.imageUrl,
-                    contentDescription = feed.title,
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Crop
+            Column(modifier = Modifier.padding(start = 12.dp)) {
+                Text(feed.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                HtmlText(
+                    html = feed.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
-                Column(modifier = Modifier.padding(start = 12.dp)) {
-                    Text(feed.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    HtmlText(
-                        html = feed.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
             }
         }
     }

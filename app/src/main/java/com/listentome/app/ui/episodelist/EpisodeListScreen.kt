@@ -1,38 +1,30 @@
 package com.listentome.app.ui.episodelist
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
-import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlaylistRemove
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
@@ -40,13 +32,10 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -70,14 +59,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.listentome.app.data.DownloadState
 import com.listentome.app.data.Episode
 import com.listentome.app.data.Feed
+import com.listentome.app.ui.components.EpisodeArtwork
+import com.listentome.app.ui.components.EpisodeInfoColumn
+import com.listentome.app.ui.components.EpisodePlayButton
 import com.listentome.app.ui.components.HtmlText
-import java.text.SimpleDateFormat
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -430,123 +419,23 @@ private fun EpisodeRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Box {
-                AsyncImage(
-                    model = episode.imageUrl ?: fallbackArtworkUrl,
-                    contentDescription = episode.title,
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Crop
-                )
-                if (episode.downloadState == DownloadState.DOWNLOADED) {
-                    Icon(
-                        Icons.Default.Download,
-                        contentDescription = "Downloaded",
-                        tint = Color.White,
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .offset(x = 4.dp, y = 4.dp)
-                            .size(18.dp)
-                            .background(MaterialTheme.colorScheme.primary, CircleShape)
-                            .padding(3.dp)
-                    )
-                }
-                if (episode.downloadState == DownloadState.FAILED) {
-                    Icon(
-                        Icons.Default.ErrorOutline,
-                        contentDescription = "Download failed",
-                        tint = Color.White,
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .offset(x = 4.dp, y = 4.dp)
-                            .size(18.dp)
-                            .background(MaterialTheme.colorScheme.error, CircleShape)
-                            .padding(3.dp)
-                    )
-                }
-                if (episode.downloadState == DownloadState.DOWNLOADING) {
-                    if (downloadProgress != null) {
-                        CircularProgressIndicator(
-                            progress = { downloadProgress },
-                            modifier = Modifier.align(Alignment.Center).size(28.dp),
-                            strokeWidth = 3.dp,
-                            color = Color.White,
-                            trackColor = Color.Black.copy(alpha = 0.4f)
-                        )
-                    } else {
-                        CircularProgressIndicator(
-                            modifier = Modifier.align(Alignment.Center).size(28.dp),
-                            strokeWidth = 3.dp,
-                            color = Color.White
-                        )
-                    }
-                }
-                if (episode.isFinished || episode.queuePosition != null) {
-                    Row(
-                        modifier = Modifier.align(Alignment.BottomCenter).offset(y = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        if (episode.isFinished) {
-                            Icon(
-                                Icons.Default.CheckCircle,
-                                contentDescription = "Played",
-                                tint = Color.White,
-                                modifier = Modifier
-                                    .size(18.dp)
-                                    .background(MaterialTheme.colorScheme.primary, CircleShape)
-                                    .padding(3.dp)
-                            )
-                        }
-                        if (episode.queuePosition != null) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.QueueMusic,
-                                contentDescription = "In queue",
-                                tint = Color.White,
-                                modifier = Modifier
-                                    .size(18.dp)
-                                    .background(MaterialTheme.colorScheme.primary, CircleShape)
-                                    .padding(3.dp)
-                            )
-                        }
-                    }
-                }
-            }
-            Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-                Text(
-                    episode.title,
-                    style = MaterialTheme.typography.titleSmall.copy(lineHeight = 17.sp),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                val durationMs = episode.durationSeconds?.times(1000)
-                if (!episode.isFinished && episode.playbackPositionMs > 0 && durationMs != null && durationMs > 0) {
-                    LinearProgressIndicator(
-                        progress = { (episode.playbackPositionMs.toFloat() / durationMs).coerceIn(0f, 1f) },
-                        modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp),
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                }
-                Text(formatDate(episode.publishedAt), style = MaterialTheme.typography.bodySmall)
-            }
-            FilledIconButton(
-                onClick = onPlayPauseClick,
-                shape = RoundedCornerShape(10.dp),
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            ) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (isPlaying) "Pause" else "Play"
-                )
-            }
+            EpisodeArtwork(
+                imageUrl = episode.imageUrl ?: fallbackArtworkUrl,
+                contentDescription = episode.title,
+                downloadState = episode.downloadState,
+                downloadProgress = downloadProgress,
+                isFinished = episode.isFinished,
+                isQueued = episode.queuePosition != null
+            )
+            EpisodeInfoColumn(
+                title = episode.title,
+                publishedAt = episode.publishedAt,
+                playbackPositionMs = episode.playbackPositionMs,
+                durationSeconds = episode.durationSeconds,
+                isFinished = episode.isFinished,
+                modifier = Modifier.weight(1f).padding(start = 12.dp)
+            )
+            EpisodePlayButton(isPlaying = isPlaying, onClick = onPlayPauseClick)
         }
     }
-}
-
-private fun formatDate(epochMillis: Long): String {
-    if (epochMillis <= 0) return ""
-    return SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(java.util.Date(epochMillis))
 }

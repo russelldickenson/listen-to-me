@@ -1,6 +1,6 @@
 package com.listentome.app.ui.queue
 
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -9,17 +9,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DragHandle
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,15 +32,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import coil3.compose.AsyncImage
+import com.listentome.app.ui.components.EpisodeArtwork
+import com.listentome.app.ui.components.EpisodeInfoColumn
+import com.listentome.app.ui.components.EpisodePlayButton
 import kotlin.math.roundToInt
 
 private val QueueRowHeight = 80.dp
@@ -94,40 +89,41 @@ fun QueueScreen(
                     QueueRow(
                         item = item,
                         isPlaying = playback.currentEpisodeId == item.episode.id && playback.isPlaying,
+                        isDragging = isDragging,
                         onPlay = { viewModel.playOrToggle(item, onOpenPlayer = onPlay) },
                         onRemove = { viewModel.removeFromQueue(item.episode) },
                         modifier = Modifier
                             .zIndex(if (isDragging) 1f else 0f)
-                            .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f },
-                        dragHandleModifier = Modifier.pointerInput(item.episode.id) {
-                            detectVerticalDragGestures(
-                                onDragStart = {
-                                    draggedIndex = items.indexOfFirst { it.episode.id == item.episode.id }
-                                    dragOffsetY = 0f
-                                },
-                                onDragEnd = {
-                                    draggedIndex = null
-                                    dragOffsetY = 0f
-                                    viewModel.reorderQueue(items.map { it.episode.id })
-                                },
-                                onDragCancel = {
-                                    draggedIndex = null
-                                    dragOffsetY = 0f
-                                },
-                                onVerticalDrag = { change, dragAmount ->
-                                    change.consume()
-                                    dragOffsetY += dragAmount
-                                    val from = draggedIndex ?: return@detectVerticalDragGestures
-                                    val to = (from + (dragOffsetY / itemHeightPx).roundToInt())
-                                        .coerceIn(0, items.lastIndex)
-                                    if (to != from) {
-                                        items = items.toMutableList().apply { add(to, removeAt(from)) }
-                                        dragOffsetY -= (to - from) * itemHeightPx
-                                        draggedIndex = to
+                            .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
+                            .pointerInput(item.episode.id) {
+                                detectDragGesturesAfterLongPress(
+                                    onDragStart = {
+                                        draggedIndex = items.indexOfFirst { it.episode.id == item.episode.id }
+                                        dragOffsetY = 0f
+                                    },
+                                    onDragEnd = {
+                                        draggedIndex = null
+                                        dragOffsetY = 0f
+                                        viewModel.reorderQueue(items.map { it.episode.id })
+                                    },
+                                    onDragCancel = {
+                                        draggedIndex = null
+                                        dragOffsetY = 0f
+                                    },
+                                    onDrag = { change, dragAmount ->
+                                        change.consume()
+                                        dragOffsetY += dragAmount.y
+                                        val from = draggedIndex ?: return@detectDragGesturesAfterLongPress
+                                        val to = (from + (dragOffsetY / itemHeightPx).roundToInt())
+                                            .coerceIn(0, items.lastIndex)
+                                        if (to != from) {
+                                            items = items.toMutableList().apply { add(to, removeAt(from)) }
+                                            dragOffsetY -= (to - from) * itemHeightPx
+                                            draggedIndex = to
+                                        }
                                     }
-                                }
-                            )
-                        }
+                                )
+                            }
                     )
                 }
             }
@@ -139,47 +135,44 @@ fun QueueScreen(
 private fun QueueRow(
     item: QueueItem,
     isPlaying: Boolean,
+    isDragging: Boolean,
     onPlay: () -> Unit,
     onRemove: () -> Unit,
-    modifier: Modifier = Modifier,
-    dragHandleModifier: Modifier = Modifier
+    modifier: Modifier = Modifier
 ) {
-    Card(modifier = modifier.fillMaxWidth().height(QueueRowHeight).padding(bottom = 12.dp)) {
+    Card(
+        modifier = modifier.fillMaxWidth().height(QueueRowHeight).padding(bottom = 12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 1.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isDragging) {
+                MaterialTheme.colorScheme.surfaceVariant
+            } else {
+                CardDefaults.cardColors().containerColor
+            }
+        )
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Icon(
-                Icons.Default.DragHandle,
-                contentDescription = "Drag to reorder",
-                modifier = dragHandleModifier.padding(end = 8.dp)
-            )
-            AsyncImage(
-                model = item.episode.imageUrl ?: item.feed?.imageUrl,
+            EpisodeArtwork(
+                imageUrl = item.episode.imageUrl ?: item.feed?.imageUrl,
                 contentDescription = item.episode.title,
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop
+                downloadState = item.episode.downloadState,
+                downloadProgress = null,
+                isFinished = item.episode.isFinished,
+                isQueued = item.episode.queuePosition != null
             )
-            Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-                Text(
-                    item.episode.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                item.feed?.title?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            }
-            IconButton(onClick = onPlay) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (isPlaying) "Pause" else "Play"
-                )
-            }
+            EpisodeInfoColumn(
+                title = item.episode.title,
+                publishedAt = item.episode.publishedAt,
+                playbackPositionMs = item.episode.playbackPositionMs,
+                durationSeconds = item.episode.durationSeconds,
+                isFinished = item.episode.isFinished,
+                modifier = Modifier.weight(1f).padding(start = 12.dp)
+            )
+            EpisodePlayButton(isPlaying = isPlaying, onClick = onPlay)
             IconButton(onClick = onRemove) {
                 Icon(Icons.Default.Delete, contentDescription = "Remove from queue")
             }

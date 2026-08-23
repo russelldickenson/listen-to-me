@@ -422,6 +422,14 @@ private fun EpisodeRow(
             }
             Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
                 Text(episode.title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                val durationMs = episode.durationSeconds?.times(1000)
+                if (!episode.isFinished && episode.playbackPositionMs > 0 && durationMs != null && durationMs > 0) {
+                    LinearProgressIndicator(
+                        progress = { (episode.playbackPositionMs.toFloat() / durationMs).coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp),
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                }
                 Text(formatDate(episode.publishedAt), style = MaterialTheme.typography.bodySmall)
                 if (episode.isFinished) {
                     Row(verticalAlignment = Alignment.CenterVertically) {

@@ -125,7 +125,23 @@ fun SettingsScreen(
                     .clickable(onClick = onOpenDownloads)
             )
             ListItem(
-                headlineContent = { Text("Autoplay queue") },
+                headlineContent = { Text("Storage limit") },
+                supportingContent = {
+                    Text(
+                        if (maxDownloadStorageBytes <= 0) {
+                            "Unlimited"
+                        } else {
+                            "Oldest downloads are removed automatically past ${storageLimitLabel(maxDownloadStorageBytes)}"
+                        }
+                    )
+                },
+                leadingContent = { Icon(Icons.Default.SdStorage, contentDescription = null) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { editingStorageLimit = true }
+            )
+            ListItem(
+                headlineContent = { Text("Auto-queue downloads") },
                 supportingContent = { Text("Add downloaded episodes to queue") },
                 leadingContent = { Icon(Icons.Default.PlaylistAdd, contentDescription = null) },
                 trailingContent = {
@@ -159,22 +175,6 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { editingDefaultKeepLatestCount = true }
-            )
-            ListItem(
-                headlineContent = { Text("Storage limit") },
-                supportingContent = {
-                    Text(
-                        if (maxDownloadStorageBytes <= 0) {
-                            "Unlimited"
-                        } else {
-                            "Oldest downloads are removed automatically past ${storageLimitLabel(maxDownloadStorageBytes)}"
-                        }
-                    )
-                },
-                leadingContent = { Icon(Icons.Default.SdStorage, contentDescription = null) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { editingStorageLimit = true }
             )
             ListItem(
                 headlineContent = { Text("Mark played episodes as auto-deleted") },

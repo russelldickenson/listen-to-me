@@ -30,20 +30,8 @@ class QueueViewModel(application: Application) : AndroidViewModel(application) {
         episodes.map { QueueItem(it, feedsById[it.feedId]) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun moveUp(episode: Episode) {
-        val list = queue.value
-        val index = list.indexOfFirst { it.episode.id == episode.id }
-        if (index > 0) {
-            viewModelScope.launch { repository.swapQueuePositions(episode.id, list[index - 1].episode.id) }
-        }
-    }
-
-    fun moveDown(episode: Episode) {
-        val list = queue.value
-        val index = list.indexOfFirst { it.episode.id == episode.id }
-        if (index in 0 until list.lastIndex) {
-            viewModelScope.launch { repository.swapQueuePositions(episode.id, list[index + 1].episode.id) }
-        }
+    fun reorderQueue(orderedEpisodeIds: List<Long>) {
+        viewModelScope.launch { repository.reorderQueue(orderedEpisodeIds) }
     }
 
     fun removeFromQueue(episode: Episode) {

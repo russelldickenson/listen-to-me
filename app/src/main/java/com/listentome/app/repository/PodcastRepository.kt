@@ -87,15 +87,10 @@ class PodcastRepository private constructor(context: Context) {
         }
     }
 
-    /** Swaps the queue order of two episodes, used to move an item up/down in the queue. */
-    suspend fun swapQueuePositions(episodeId: Long, otherEpisodeId: Long) = withContext(Dispatchers.IO) {
-        val a = episodeDao.getById(episodeId) ?: return@withContext
-        val b = episodeDao.getById(otherEpisodeId) ?: return@withContext
-        val aPosition = a.queuePosition
-        val bPosition = b.queuePosition
-        if (aPosition != null && bPosition != null) {
-            episodeDao.setQueuePosition(a.id, bPosition)
-            episodeDao.setQueuePosition(b.id, aPosition)
+    /** Persists a full drag-and-drop reorder of the queue, in the given order. */
+    suspend fun reorderQueue(orderedEpisodeIds: List<Long>) = withContext(Dispatchers.IO) {
+        orderedEpisodeIds.forEachIndexed { index, episodeId ->
+            episodeDao.setQueuePosition(episodeId, (index + 1).toLong())
         }
     }
 

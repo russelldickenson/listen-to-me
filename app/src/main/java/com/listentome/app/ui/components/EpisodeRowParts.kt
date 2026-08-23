@@ -13,17 +13,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -35,7 +36,11 @@ import com.listentome.app.data.DownloadState
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-/** Episode artwork with download-state, played, and queued badges overlaid, matching the per-podcast episode list style. */
+/**
+ * Episode artwork with the download-failed/downloading state overlaid on the image, and the
+ * downloaded/queued state shown as small icons underneath, tinted to match the row's text
+ * color. Dims the artwork when the episode has been played.
+ */
 @Composable
 fun EpisodeArtwork(
     imageUrl: String?,
@@ -46,83 +51,68 @@ fun EpisodeArtwork(
     isQueued: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier) {
-        AsyncImage(
-            model = imageUrl,
-            contentDescription = contentDescription,
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(8.dp)),
-            contentScale = ContentScale.Crop
-        )
-        if (downloadState == DownloadState.DOWNLOADED) {
-            Icon(
-                Icons.Default.Download,
-                contentDescription = "Downloaded",
-                tint = MaterialTheme.colorScheme.onPrimary,
+    val textColor = LocalContentColor.current
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Box {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = contentDescription,
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .offset(x = 4.dp, y = 4.dp)
-                    .size(18.dp)
-                    .background(MaterialTheme.colorScheme.primary, CircleShape)
-                    .padding(3.dp)
+                    .size(56.dp)
+                    .alpha(if (isFinished) 0.5f else 1f)
+                    .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop
             )
-        }
-        if (downloadState == DownloadState.FAILED) {
-            Icon(
-                Icons.Default.ErrorOutline,
-                contentDescription = "Download failed",
-                tint = MaterialTheme.colorScheme.onError,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .offset(x = 4.dp, y = 4.dp)
-                    .size(18.dp)
-                    .background(MaterialTheme.colorScheme.error, CircleShape)
-                    .padding(3.dp)
-            )
-        }
-        if (downloadState == DownloadState.DOWNLOADING) {
-            if (downloadProgress != null) {
-                CircularProgressIndicator(
-                    progress = { downloadProgress },
-                    modifier = Modifier.align(Alignment.Center).size(28.dp),
-                    strokeWidth = 3.dp,
-                    color = Color.White,
-                    trackColor = Color.Black.copy(alpha = 0.4f)
-                )
-            } else {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center).size(28.dp),
-                    strokeWidth = 3.dp,
-                    color = Color.White
+            if (downloadState == DownloadState.FAILED) {
+                Icon(
+                    Icons.Default.ErrorOutline,
+                    contentDescription = "Download failed",
+                    tint = MaterialTheme.colorScheme.onError,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .offset(x = 4.dp, y = 4.dp)
+                        .size(18.dp)
+                        .background(MaterialTheme.colorScheme.error, CircleShape)
+                        .padding(3.dp)
                 )
             }
+            if (downloadState == DownloadState.DOWNLOADING) {
+                if (downloadProgress != null) {
+                    CircularProgressIndicator(
+                        progress = { downloadProgress },
+                        modifier = Modifier.align(Alignment.Center).size(28.dp),
+                        strokeWidth = 3.dp,
+                        color = Color.White,
+                        trackColor = Color.Black.copy(alpha = 0.4f)
+                    )
+                } else {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center).size(28.dp),
+                        strokeWidth = 3.dp,
+                        color = Color.White
+                    )
+                }
+            }
         }
-        if (isFinished || isQueued) {
+        if (downloadState == DownloadState.DOWNLOADED || isQueued) {
             Row(
-                modifier = Modifier.align(Alignment.BottomCenter).offset(y = 4.dp),
+                modifier = Modifier.padding(top = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                if (isFinished) {
+                if (downloadState == DownloadState.DOWNLOADED) {
                     Icon(
-                        Icons.Default.CheckCircle,
-                        contentDescription = "Played",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier
-                            .size(18.dp)
-                            .background(MaterialTheme.colorScheme.primary, CircleShape)
-                            .padding(3.dp)
+                        Icons.Default.Download,
+                        contentDescription = "Downloaded",
+                        tint = textColor,
+                        modifier = Modifier.size(14.dp)
                     )
                 }
                 if (isQueued) {
                     Icon(
                         Icons.AutoMirrored.Filled.QueueMusic,
                         contentDescription = "In queue",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier
-                            .size(18.dp)
-                            .background(MaterialTheme.colorScheme.primary, CircleShape)
-                            .padding(3.dp)
+                        tint = textColor,
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }
@@ -149,6 +139,7 @@ fun EpisodeInfoColumn(
         Text(
             title,
             style = MaterialTheme.typography.titleSmall.copy(lineHeight = 17.sp),
+            color = if (isFinished) LocalContentColor.current.copy(alpha = 0.6f) else Color.Unspecified,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )

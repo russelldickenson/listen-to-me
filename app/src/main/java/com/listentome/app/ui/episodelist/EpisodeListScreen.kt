@@ -97,10 +97,18 @@ fun EpisodeListScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        feed?.title ?: "",
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.clickable(enabled = feed != null) { showDetails = true }
-                    )
+                    ) {
+                        AsyncImage(
+                            model = feed?.imageUrl,
+                            contentDescription = null,
+                            modifier = Modifier.size(36.dp).clip(RoundedCornerShape(6.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                        Text(feed?.title ?: "", modifier = Modifier.padding(start = 8.dp))
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {

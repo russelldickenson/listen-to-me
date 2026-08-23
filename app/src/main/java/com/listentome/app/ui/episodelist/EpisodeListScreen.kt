@@ -480,6 +480,35 @@ private fun EpisodeRow(
                         )
                     }
                 }
+                if (episode.isFinished || episode.queuePosition != null) {
+                    Row(
+                        modifier = Modifier.align(Alignment.BottomCenter).offset(y = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        if (episode.isFinished) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = "Played",
+                                tint = Color.White,
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+                                    .padding(3.dp)
+                            )
+                        }
+                        if (episode.queuePosition != null) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.QueueMusic,
+                                contentDescription = "In queue",
+                                tint = Color.White,
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+                                    .padding(3.dp)
+                            )
+                        }
+                    }
+                }
             }
             Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
                 Text(
@@ -497,18 +526,6 @@ private fun EpisodeRow(
                     )
                 }
                 Text(formatDate(episode.publishedAt), style = MaterialTheme.typography.bodySmall)
-                if (episode.isFinished) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
-                        Text("Played", style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-                if (episode.queuePosition != null) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
-                        Text("In queue", style = MaterialTheme.typography.bodySmall)
-                    }
-                }
             }
             IconButton(onClick = onPlayPauseClick) {
                 Icon(

@@ -23,6 +23,7 @@ import kotlin.coroutines.resume
 data class PlaybackUiState(
     val currentEpisodeId: Long? = null,
     val isPlaying: Boolean = false,
+    val isBuffering: Boolean = false,
     val positionMs: Long = 0,
     val durationMs: Long = 0
 )
@@ -49,6 +50,10 @@ class PlaybackController private constructor(private val context: Context) {
                         _state.value = _state.value.copy(isPlaying = isPlaying)
                     }
 
+                    override fun onPlaybackStateChanged(playbackState: Int) {
+                        _state.value = _state.value.copy(isBuffering = playbackState == Player.STATE_BUFFERING)
+                    }
+
                     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                         val episodeId = mediaItem?.mediaId?.toLongOrNull()
                         _state.value = _state.value.copy(currentEpisodeId = episodeId, positionMs = 0)
@@ -61,6 +66,7 @@ class PlaybackController private constructor(private val context: Context) {
     }
 
     suspend fun playEpisode(episodeId: Long, title: String, artist: String, artworkUri: String?, uri: String, startPositionMs: Long) {
+        _state.value = _state.value.copy(currentEpisodeId = episodeId, positionMs = startPositionMs, isBuffering = true)
         val c = ensureController()
         val metadata = MediaMetadata.Builder()
             .setTitle(title)
@@ -75,7 +81,6 @@ class PlaybackController private constructor(private val context: Context) {
         c.setMediaItem(mediaItem, startPositionMs)
         c.prepare()
         c.playWhenReady = true
-        _state.value = _state.value.copy(currentEpisodeId = episodeId, positionMs = startPositionMs)
         startPolling()
     }
 

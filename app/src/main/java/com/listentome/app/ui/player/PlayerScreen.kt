@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -193,11 +194,19 @@ fun PlayerScreen(
                                 contentColor = MaterialTheme.colorScheme.onPrimary
                             )
                         ) {
-                            Icon(
-                                imageVector = if (playback.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                contentDescription = if (playback.isPlaying) "Pause" else "Play",
-                                modifier = Modifier.size(40.dp)
-                            )
+                            if (playback.isBuffering) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(32.dp),
+                                    strokeWidth = 3.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = if (playback.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                    contentDescription = if (playback.isPlaying) "Pause" else "Play",
+                                    modifier = Modifier.size(40.dp)
+                                )
+                            }
                         }
                         IconButton(onClick = { viewModel.skip(skipForwardSeconds * 1000L) }, modifier = Modifier.size(48.dp)) {
                             Icon(Icons.Default.FastForward, contentDescription = "Forward $skipForwardSeconds seconds", modifier = Modifier.size(32.dp))

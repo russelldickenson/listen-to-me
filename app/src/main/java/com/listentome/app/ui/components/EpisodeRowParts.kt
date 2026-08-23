@@ -63,7 +63,7 @@ fun EpisodeArtwork(
             Icon(
                 Icons.Default.Download,
                 contentDescription = "Downloaded",
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .offset(x = 4.dp, y = 4.dp)
@@ -76,7 +76,7 @@ fun EpisodeArtwork(
             Icon(
                 Icons.Default.ErrorOutline,
                 contentDescription = "Download failed",
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.onError,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .offset(x = 4.dp, y = 4.dp)
@@ -111,7 +111,7 @@ fun EpisodeArtwork(
                     Icon(
                         Icons.Default.CheckCircle,
                         contentDescription = "Played",
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier
                             .size(18.dp)
                             .background(MaterialTheme.colorScheme.primary, CircleShape)
@@ -122,7 +122,7 @@ fun EpisodeArtwork(
                     Icon(
                         Icons.AutoMirrored.Filled.QueueMusic,
                         contentDescription = "In queue",
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier
                             .size(18.dp)
                             .background(MaterialTheme.colorScheme.primary, CircleShape)

@@ -37,6 +37,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
 
+    val dynamicColorEnabled: StateFlow<Boolean> = appSettings.dynamicColorEnabled
+
+    fun setDynamicColorEnabled(enabled: Boolean) {
+        appSettings.setDynamicColorEnabled(enabled)
+    }
+
     val hidePlayedEpisodes: StateFlow<Boolean> = appSettings.hidePlayedEpisodes
 
     fun setHidePlayedEpisodes(enabled: Boolean) {

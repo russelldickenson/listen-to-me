@@ -81,6 +81,14 @@ class AppSettings private constructor(context: Context) {
         _hidePlayedEpisodes.value = enabled
     }
 
+    private val _dynamicColorEnabled = MutableStateFlow(prefs.getBoolean(KEY_DYNAMIC_COLOR_ENABLED, false))
+    val dynamicColorEnabled: StateFlow<Boolean> = _dynamicColorEnabled.asStateFlow()
+
+    fun setDynamicColorEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_DYNAMIC_COLOR_ENABLED, enabled).apply()
+        _dynamicColorEnabled.value = enabled
+    }
+
     companion object {
         private const val KEY_AUTOPLAY_QUEUE = "autoplay_queue_enabled"
         private const val KEY_SKIP_FORWARD_SECONDS = "skip_forward_seconds"
@@ -91,6 +99,7 @@ class AppSettings private constructor(context: Context) {
         private const val KEY_MAX_DOWNLOAD_STORAGE_BYTES = "max_download_storage_bytes"
         private const val KEY_AUTO_DELETE_PLAYED = "auto_delete_played_enabled"
         private const val KEY_HIDE_PLAYED_EPISODES = "hide_played_episodes"
+        private const val KEY_DYNAMIC_COLOR_ENABLED = "dynamic_color_enabled"
         const val DEFAULT_SKIP_FORWARD_SECONDS = 30
         const val DEFAULT_SKIP_BACK_SECONDS = 15
         const val AUTO_SKIP_BACK_ON_RESUME_SECONDS = 3

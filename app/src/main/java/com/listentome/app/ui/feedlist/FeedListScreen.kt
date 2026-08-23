@@ -42,7 +42,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -90,12 +89,12 @@ fun FeedListScreen(
                             modifier = Modifier
                                 .size(28.dp)
                                 .clip(RoundedCornerShape(7.dp))
-                                .background(Color(0xFF1A73E8))
+                                .background(MaterialTheme.colorScheme.primary)
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_launcher_foreground),
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.fillMaxSize()
                             )
                         }

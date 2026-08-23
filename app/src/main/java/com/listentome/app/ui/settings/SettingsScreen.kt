@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Remove
@@ -59,6 +60,7 @@ fun SettingsScreen(
     onOpenDownloads: () -> Unit
 ) {
     val message by viewModel.message.collectAsState()
+    val dynamicColorEnabled by viewModel.dynamicColorEnabled.collectAsState()
     val hidePlayedEpisodes by viewModel.hidePlayedEpisodes.collectAsState()
     val totalDownloadBytes by viewModel.totalDownloadBytes.collectAsState()
     val autoplayQueueEnabled by viewModel.autoplayQueueEnabled.collectAsState()
@@ -113,6 +115,25 @@ fun SettingsScreen(
                     .clickable {
                         importLauncher.launch(arrayOf("text/x-opml", "text/xml", "application/xml", "*/*"))
                     }
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            SectionHeader("Appearance")
+
+            ListItem(
+                headlineContent = { Text("Dynamic color") },
+                supportingContent = { Text("Use colors from your wallpaper (Android 12+)") },
+                leadingContent = { Icon(Icons.Default.Palette, contentDescription = null) },
+                trailingContent = {
+                    Switch(
+                        checked = dynamicColorEnabled,
+                        onCheckedChange = viewModel::setDynamicColorEnabled
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.setDynamicColorEnabled(!dynamicColorEnabled) }
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))

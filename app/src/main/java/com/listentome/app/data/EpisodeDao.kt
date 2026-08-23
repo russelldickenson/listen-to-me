@@ -9,10 +9,17 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface EpisodeDao {
-    @Query("SELECT * FROM episodes WHERE feedId = :feedId ORDER BY publishedAt DESC")
+    @Query("""
+        SELECT * FROM episodes WHERE feedId = :feedId
+        ORDER BY CASE WHEN manualSortOrder IS NULL THEN 1 ELSE 0 END, manualSortOrder ASC, publishedAt DESC
+    """)
     fun observeByFeed(feedId: Long): Flow<List<Episode>>
 
-    @Query("SELECT * FROM episodes WHERE feedId = :feedId ORDER BY publishedAt DESC LIMIT :limit")
+    @Query("""
+        SELECT * FROM episodes WHERE feedId = :feedId
+        ORDER BY CASE WHEN manualSortOrder IS NULL THEN 1 ELSE 0 END, manualSortOrder ASC, publishedAt DESC
+        LIMIT :limit
+    """)
     fun observeByFeedLimited(feedId: Long, limit: Int): Flow<List<Episode>>
 
     @Query("SELECT COUNT(*) FROM episodes WHERE feedId = :feedId")
@@ -69,4 +76,7 @@ interface EpisodeDao {
     /** Recovers episodes left stuck in DOWNLOADING by a killed process or cancelled coroutine. */
     @Query("UPDATE episodes SET downloadState = 'FAILED' WHERE downloadState = 'DOWNLOADING'")
     suspend fun resetStuckDownloads()
+
+    @Query("UPDATE episodes SET manualSortOrder = :order WHERE id = :episodeId")
+    suspend fun setManualSortOrder(episodeId: Long, order: Long?)
 }

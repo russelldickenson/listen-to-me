@@ -8,6 +8,7 @@ import com.listentome.app.data.Feed
 import com.listentome.app.playback.PlaybackController
 import com.listentome.app.playback.PlaybackUiState
 import com.listentome.app.repository.PodcastRepository
+import com.listentome.app.settings.AppSettings
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -19,15 +20,19 @@ data class QueueItem(val episode: Episode, val feed: Feed?)
 class QueueViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = PodcastRepository.get(application)
     private val playbackController = PlaybackController.get(application)
+    private val appSettings = AppSettings.get(application)
 
     val playback: StateFlow<PlaybackUiState> = playbackController.state
 
     val queue: StateFlow<List<QueueItem>> = combine(
         repository.observeQueue(),
-        repository.observeFeeds()
-    ) { episodes, feeds ->
+        repository.observeFeeds(),
+        appSettings.hidePlayedEpisodes
+    ) { episodes, feeds, hidePlayed ->
         val feedsById = feeds.associateBy { it.id }
-        episodes.map { QueueItem(it, feedsById[it.feedId]) }
+        episodes
+            .filter { !hidePlayed || !it.isFinished }
+            .map { QueueItem(it, feedsById[it.feedId]) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun reorderQueue(orderedEpisodeIds: List<Long>) {

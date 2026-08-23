@@ -1,8 +1,7 @@
 package com.listentome.app.ui.episodelist
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -12,12 +11,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.zIndex
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
@@ -25,6 +29,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlaylistRemove
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
@@ -32,6 +37,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -48,6 +54,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -67,6 +74,9 @@ import com.listentome.app.ui.components.EpisodeArtwork
 import com.listentome.app.ui.components.EpisodeInfoColumn
 import com.listentome.app.ui.components.EpisodePlayButton
 import com.listentome.app.ui.components.HtmlText
+import kotlin.math.roundToInt
+
+private val EpisodeRowHeight = 88.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,6 +93,15 @@ fun EpisodeListScreen(
     var showSettings by remember { mutableStateOf(false) }
     var showDetails by remember { mutableStateOf(false) }
     var actionsEpisodeId by remember { mutableStateOf<Long?>(null) }
+
+    var items by remember { mutableStateOf(episodes) }
+    var draggedIndex by remember { mutableStateOf<Int?>(null) }
+    var dragOffsetY by remember { mutableStateOf(0f) }
+    val itemHeightPx = with(LocalDensity.current) { EpisodeRowHeight.toPx() }
+
+    LaunchedEffect(episodes) {
+        if (draggedIndex == null) items = episodes
+    }
 
     Scaffold(
         topBar = {
@@ -114,7 +133,7 @@ fun EpisodeListScreen(
             )
         }
     ) { padding ->
-        if (episodes.isEmpty()) {
+        if (items.isEmpty()) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(padding).padding(32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -123,16 +142,50 @@ fun EpisodeListScreen(
             }
         } else {
             LazyColumn(contentPadding = PaddingValues(16.dp), modifier = Modifier.padding(padding)) {
-                items(episodes, key = { it.id }) { episode ->
+                itemsIndexed(items, key = { _, episode -> episode.id }) { index, episode ->
                     val isCurrentEpisode = playback.currentEpisodeId == episode.id
+                    val isDragging = index == draggedIndex
                     EpisodeRow(
                         episode = episode,
                         fallbackArtworkUrl = feed?.imageUrl,
                         isPlaying = isCurrentEpisode && playback.isPlaying,
                         downloadProgress = downloadProgress[episode.id],
+                        isDragging = isDragging,
                         onOpenPlayer = onPlay,
                         onPlayPauseClick = { viewModel.playOrToggle(episode, onOpenPlayer = onPlay) },
-                        onLongPress = { actionsEpisodeId = episode.id }
+                        onOpenActions = { actionsEpisodeId = episode.id },
+                        modifier = Modifier
+                            .zIndex(if (isDragging) 1f else 0f)
+                            .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
+                            .pointerInput(episode.id) {
+                                detectDragGesturesAfterLongPress(
+                                    onDragStart = {
+                                        draggedIndex = items.indexOfFirst { it.id == episode.id }
+                                        dragOffsetY = 0f
+                                    },
+                                    onDragEnd = {
+                                        draggedIndex = null
+                                        dragOffsetY = 0f
+                                        viewModel.reorderEpisodes(items.map { it.id })
+                                    },
+                                    onDragCancel = {
+                                        draggedIndex = null
+                                        dragOffsetY = 0f
+                                    },
+                                    onDrag = { change, dragAmount ->
+                                        change.consume()
+                                        dragOffsetY += dragAmount.y
+                                        val from = draggedIndex ?: return@detectDragGesturesAfterLongPress
+                                        val to = (from + (dragOffsetY / itemHeightPx).roundToInt())
+                                            .coerceIn(0, items.lastIndex)
+                                        if (to != from) {
+                                            items = items.toMutableList().apply { add(to, removeAt(from)) }
+                                            dragOffsetY -= (to - from) * itemHeightPx
+                                            draggedIndex = to
+                                        }
+                                    }
+                                )
+                            }
                     )
                 }
                 if (hasMoreEpisodes) {
@@ -401,22 +454,32 @@ private fun FeedSettingsDialog(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun EpisodeRow(
     episode: Episode,
     fallbackArtworkUrl: String?,
     isPlaying: Boolean,
     downloadProgress: Float?,
+    isDragging: Boolean,
     onOpenPlayer: () -> Unit,
     onPlayPauseClick: () -> Unit,
-    onLongPress: () -> Unit
+    onOpenActions: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
+            .height(EpisodeRowHeight)
             .padding(bottom = 12.dp)
-            .combinedClickable(onClick = onOpenPlayer, onLongClick = onLongPress)
+            .clickable(onClick = onOpenPlayer),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 1.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isDragging) {
+                MaterialTheme.colorScheme.surfaceVariant
+            } else {
+                CardDefaults.cardColors().containerColor
+            }
+        )
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -440,6 +503,9 @@ private fun EpisodeRow(
                 modifier = Modifier.weight(1f).padding(start = 12.dp)
             )
             EpisodePlayButton(isPlaying = isPlaying, onClick = onPlayPauseClick)
+            IconButton(onClick = onOpenActions) {
+                Icon(Icons.Default.MoreVert, contentDescription = "Episode actions")
+            }
         }
     }
 }

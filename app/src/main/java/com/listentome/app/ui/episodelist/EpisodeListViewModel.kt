@@ -53,6 +53,10 @@ class EpisodeListViewModel(application: Application, private val feedId: Long) :
         visibleCount.value += PAGE_SIZE
     }
 
+    fun reorderEpisodes(orderedEpisodeIds: List<Long>) {
+        viewModelScope.launch { repository.reorderEpisodes(orderedEpisodeIds) }
+    }
+
     fun refresh() {
         viewModelScope.launch { repository.refreshFeed(feedId) }
     }

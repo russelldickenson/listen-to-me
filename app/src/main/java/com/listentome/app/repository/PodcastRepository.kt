@@ -106,6 +106,13 @@ class PodcastRepository private constructor(context: Context) {
         }
     }
 
+    /** Persists a manual drag-and-drop reorder of a podcast's episode list, in the given order. */
+    suspend fun reorderEpisodes(orderedEpisodeIds: List<Long>) = withContext(Dispatchers.IO) {
+        orderedEpisodeIds.forEachIndexed { index, episodeId ->
+            episodeDao.setManualSortOrder(episodeId, (index + 1).toLong())
+        }
+    }
+
     /** Fetches and parses a feed without saving anything, so it can be previewed before adding. */
     suspend fun previewFeed(url: String): com.listentome.app.network.ParsedFeed = withContext(Dispatchers.IO) {
         fetchAndParse(url.trim())

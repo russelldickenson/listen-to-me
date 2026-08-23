@@ -39,5 +39,6 @@ data class Episode(
     val localFilePath: String? = null,
     val playbackPositionMs: Long = 0,
     val isFinished: Boolean = false,
-    val queuePosition: Long? = null
+    val queuePosition: Long? = null,
+    val manualSortOrder: Long? = null
 )

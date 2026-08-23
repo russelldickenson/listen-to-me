@@ -4,6 +4,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -69,6 +72,8 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.listentome.app.data.DownloadState
 import com.listentome.app.data.Episode
+import com.listentome.app.data.Feed
+import com.listentome.app.ui.components.HtmlText
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -85,12 +90,18 @@ fun EpisodeListScreen(
     val playback by viewModel.playback.collectAsState()
     val downloadProgress by viewModel.downloadProgress.collectAsState()
     var showSettings by remember { mutableStateOf(false) }
+    var showDetails by remember { mutableStateOf(false) }
     var actionsEpisodeId by remember { mutableStateOf<Long?>(null) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(feed?.title ?: "") },
+                title = {
+                    Text(
+                        feed?.title ?: "",
+                        modifier = Modifier.clickable(enabled = feed != null) { showDetails = true }
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -153,6 +164,10 @@ fun EpisodeListScreen(
                 showSettings = false
             }
         )
+    }
+
+    if (showDetails) {
+        feed?.let { PodcastDetailsDialog(feed = it, onDismiss = { showDetails = false }) }
     }
 
     val actionsEpisode = actionsEpisodeId?.let { id -> episodes.find { it.id == id } }
@@ -264,6 +279,43 @@ private fun EpisodeActionItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = enabled, onClick = onClick)
+    )
+}
+
+@Composable
+private fun PodcastDetailsDialog(
+    feed: Feed,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AsyncImage(
+                    model = feed.imageUrl,
+                    contentDescription = feed.title,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+                Text(
+                    feed.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(start = 12.dp)
+                )
+            }
+        },
+        text = {
+            HtmlText(
+                html = feed.description,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        }
     )
 }
 

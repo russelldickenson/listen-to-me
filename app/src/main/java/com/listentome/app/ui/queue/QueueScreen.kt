@@ -2,6 +2,7 @@ package com.listentome.app.ui.queue
 
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -14,8 +15,11 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,7 +46,7 @@ import com.listentome.app.ui.components.EpisodeInfoColumn
 import com.listentome.app.ui.components.EpisodePlayButton
 import kotlin.math.roundToInt
 
-private val QueueRowHeight = 80.dp
+private val QueueRowHeight = 108.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -170,11 +174,25 @@ private fun QueueRow(
                 playbackPositionMs = item.episode.playbackPositionMs,
                 durationSeconds = item.episode.durationSeconds,
                 isFinished = item.episode.isFinished,
+                subtitle = item.feed?.title,
                 modifier = Modifier.weight(1f).padding(start = 12.dp)
             )
             EpisodePlayButton(isPlaying = isPlaying, onClick = onPlay)
-            IconButton(onClick = onRemove) {
-                Icon(Icons.Default.Delete, contentDescription = "Remove from queue")
+            var showMenu by remember { mutableStateOf(false) }
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "Episode actions")
+                }
+                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Remove from queue") },
+                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
+                        onClick = {
+                            showMenu = false
+                            onRemove()
+                        }
+                    )
+                }
             }
         }
     }

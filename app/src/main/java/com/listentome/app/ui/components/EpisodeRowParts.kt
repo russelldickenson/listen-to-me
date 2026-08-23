@@ -134,7 +134,11 @@ fun EpisodeArtwork(
     }
 }
 
-/** Episode title, playback-progress bar, and published date, matching the per-podcast episode list style. */
+/**
+ * Episode title, playback-progress bar, and published date, matching the per-podcast episode
+ * list style. Pass [subtitle] (e.g. the podcast name) to show it alongside the date, for
+ * contexts like the Queue where episodes from multiple podcasts are mixed together.
+ */
 @Composable
 fun EpisodeInfoColumn(
     title: String,
@@ -142,7 +146,8 @@ fun EpisodeInfoColumn(
     playbackPositionMs: Long,
     durationSeconds: Long?,
     isFinished: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    subtitle: String? = null
 ) {
     Column(modifier = modifier) {
         Text(
@@ -151,6 +156,14 @@ fun EpisodeInfoColumn(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
+        if (subtitle != null) {
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
         val durationMs = durationSeconds?.times(1000)
         if (!isFinished && playbackPositionMs > 0 && durationMs != null && durationMs > 0) {
             LinearProgressIndicator(
@@ -159,7 +172,12 @@ fun EpisodeInfoColumn(
                 trackColor = MaterialTheme.colorScheme.surfaceVariant
             )
         }
-        Text(formatEpisodeDate(publishedAt), style = MaterialTheme.typography.bodySmall)
+        Text(
+            text = formatEpisodeDate(publishedAt),
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 

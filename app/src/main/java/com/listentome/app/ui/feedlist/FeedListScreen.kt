@@ -183,7 +183,7 @@ private fun StaleDataBanner(isRefreshing: Boolean, onRefresh: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = if (isRefreshing) "Refreshing…" else "Local episodes may be out of date.",
+                text = if (isRefreshing) "Refreshing…" else "Episodes might be out of date (refreshed > 24 hours ago)",
                 modifier = Modifier.weight(1f)
             )
             Button(onClick = onRefresh, enabled = !isRefreshing) {

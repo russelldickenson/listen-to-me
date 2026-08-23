@@ -11,13 +11,17 @@ import com.listentome.app.network.RssParser
 import com.listentome.app.opml.OpmlParser
 import com.listentome.app.opml.OpmlWriter
 import com.listentome.app.settings.AppSettings
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -39,6 +43,14 @@ class PodcastRepository private constructor(context: Context) {
     private val _downloadProgress = MutableStateFlow<Map<Long, Float>>(emptyMap())
     /** Fraction complete (0f..1f) per episode id, for episodes currently downloading. */
     val downloadProgress: StateFlow<Map<Long, Float>> = _downloadProgress.asStateFlow()
+
+    private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    init {
+        // Recover episodes left stuck in DOWNLOADING by a process death or a previous
+        // version's bug where navigating away cancelled the in-flight download.
+        ioScope.launch { episodeDao.resetStuckDownloads() }
+    }
 
     fun observeFeeds(): Flow<List<Feed>> = feedDao.observeAll()
 
@@ -201,7 +213,11 @@ class PodcastRepository private constructor(context: Context) {
         }
     }
 
-    suspend fun downloadEpisode(episode: Episode) = withContext(Dispatchers.IO) {
+    /**
+     * Runs the whole download non-cancellably: navigating away from the screen that started
+     * it must not cancel the in-flight transfer and leave the episode stuck in DOWNLOADING.
+     */
+    suspend fun downloadEpisode(episode: Episode) = withContext(Dispatchers.IO + NonCancellable) {
         if (appSettings.wifiOnlyDownloads.value && !NetworkMonitor.isOnWifi(appContext)) {
             return@withContext
         }
@@ -219,7 +235,7 @@ class PodcastRepository private constructor(context: Context) {
                 episodeDao.setQueuePosition(episode.id, nextPosition)
             }
             enforceGlobalStorageCap()
-        } catch (e: IOException) {
+        } catch (e: Exception) {
             episodeDao.updateDownloadState(episode.id, DownloadState.FAILED, null)
         } finally {
             _downloadProgress.update { it - episode.id }

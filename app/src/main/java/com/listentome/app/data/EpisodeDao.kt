@@ -65,4 +65,8 @@ interface EpisodeDao {
 
     @Query("UPDATE episodes SET downloadState = :state, localFilePath = :path WHERE id = :episodeId")
     suspend fun updateDownloadState(episodeId: Long, state: DownloadState, path: String?)
+
+    /** Recovers episodes left stuck in DOWNLOADING by a killed process or cancelled coroutine. */
+    @Query("UPDATE episodes SET downloadState = 'FAILED' WHERE downloadState = 'DOWNLOADING'")
+    suspend fun resetStuckDownloads()
 }

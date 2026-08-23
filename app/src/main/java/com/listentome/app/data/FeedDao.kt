@@ -9,8 +9,14 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface FeedDao {
-    @Query("SELECT * FROM feeds ORDER BY title COLLATE NOCASE ASC")
+    @Query("SELECT * FROM feeds ORDER BY sortOrder ASC")
     fun observeAll(): Flow<List<Feed>>
+
+    @Query("SELECT MAX(sortOrder) FROM feeds")
+    suspend fun getMaxSortOrder(): Long?
+
+    @Query("UPDATE feeds SET sortOrder = :sortOrder WHERE id = :feedId")
+    suspend fun setSortOrder(feedId: Long, sortOrder: Long)
 
     @Query("SELECT * FROM feeds WHERE id = :feedId")
     fun observeById(feedId: Long): Flow<Feed?>

@@ -12,5 +12,6 @@ data class Feed(
     val description: String,
     val imageUrl: String?,
     val lastRefreshedAt: Long?,
-    val keepLatestCount: Int = 3
+    val keepLatestCount: Int = 3,
+    val sortOrder: Long = 0
 )

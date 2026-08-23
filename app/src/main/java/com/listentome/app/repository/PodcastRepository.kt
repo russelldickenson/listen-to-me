@@ -104,6 +104,7 @@ class PodcastRepository private constructor(context: Context) {
         feedDao.getByUrl(normalizedUrl)?.let { return@withContext it }
 
         val parsed = prefetched ?: fetchAndParse(normalizedUrl)
+        val nextSortOrder = (feedDao.getMaxSortOrder() ?: 0) + 1
         val feedId = feedDao.insert(
             Feed(
                 url = normalizedUrl,
@@ -111,7 +112,8 @@ class PodcastRepository private constructor(context: Context) {
                 description = parsed.description,
                 imageUrl = parsed.imageUrl,
                 lastRefreshedAt = System.currentTimeMillis(),
-                keepLatestCount = appSettings.defaultKeepLatestCount.value
+                keepLatestCount = appSettings.defaultKeepLatestCount.value,
+                sortOrder = nextSortOrder
             )
         )
         parsed.items.forEach { item ->
@@ -133,6 +135,13 @@ class PodcastRepository private constructor(context: Context) {
 
     suspend fun removeFeed(feedId: Long) = withContext(Dispatchers.IO) {
         feedDao.delete(feedId)
+    }
+
+    /** Persists a full drag-and-drop reorder of the podcast list, in the given order. */
+    suspend fun reorderFeeds(orderedFeedIds: List<Long>) = withContext(Dispatchers.IO) {
+        orderedFeedIds.forEachIndexed { index, feedId ->
+            feedDao.setSortOrder(feedId, (index + 1).toLong())
+        }
     }
 
     suspend fun updateKeepLatestCount(feedId: Long, count: Int) = withContext(Dispatchers.IO) {

@@ -47,4 +47,8 @@ class FeedListViewModel(application: Application) : AndroidViewModel(application
     fun removeFeed(feedId: Long) {
         viewModelScope.launch { repository.removeFeed(feedId) }
     }
+
+    fun reorderFeeds(orderedFeedIds: List<Long>) {
+        viewModelScope.launch { repository.reorderFeeds(orderedFeedIds) }
+    }
 }

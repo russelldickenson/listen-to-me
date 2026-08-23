@@ -8,6 +8,7 @@ import com.listentome.app.data.Feed
 import com.listentome.app.download.EpisodeDownloadManager
 import com.listentome.app.network.NetworkMonitor
 import com.listentome.app.network.RssParser
+import com.listentome.app.opml.OpmlOutline
 import com.listentome.app.opml.OpmlParser
 import com.listentome.app.opml.OpmlWriter
 import com.listentome.app.settings.AppSettings
@@ -282,8 +283,11 @@ class PodcastRepository private constructor(context: Context) {
         OpmlWriter.write(feedDao.observeAll().first())
     }
 
-    suspend fun importOpml(input: InputStream): OpmlImportResult = withContext(Dispatchers.IO) {
-        val outlines = input.use { OpmlParser.parse(it) }
+    suspend fun parseOpml(input: InputStream): List<OpmlOutline> = withContext(Dispatchers.IO) {
+        input.use { OpmlParser.parse(it) }
+    }
+
+    suspend fun importOpml(outlines: List<OpmlOutline>): OpmlImportResult = withContext(Dispatchers.IO) {
         var added = 0
         var skipped = 0
         var failed = 0

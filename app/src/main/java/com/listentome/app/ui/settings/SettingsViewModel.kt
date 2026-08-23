@@ -4,6 +4,7 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.listentome.app.opml.OpmlOutline
 import com.listentome.app.repository.OpmlImportResult
 import com.listentome.app.repository.PodcastRepository
 import com.listentome.app.settings.AppSettings
@@ -28,6 +29,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     private val _message = MutableStateFlow<SettingsMessage?>(null)
     val message: StateFlow<SettingsMessage?> = _message.asStateFlow()
+
+    private val _pendingImport = MutableStateFlow<List<OpmlOutline>?>(null)
+    val pendingImport: StateFlow<List<OpmlOutline>?> = _pendingImport.asStateFlow()
+
+    private val _isImporting = MutableStateFlow(false)
+    val isImporting: StateFlow<Boolean> = _isImporting.asStateFlow()
 
     val totalDownloadBytes: StateFlow<Long> = repository.observeDownloadedEpisodes()
         .map { episodes ->
@@ -114,16 +121,40 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun importOpml(uri: Uri) {
+    fun previewImport(uri: Uri) {
         viewModelScope.launch {
             try {
                 val input = getApplication<Application>().contentResolver.openInputStream(uri)
                     ?: throw IllegalStateException("Could not open file for reading")
-                val result = repository.importOpml(input)
-                _message.value = SettingsMessage.ImportComplete(result)
+                val outlines = repository.parseOpml(input)
+                if (outlines.isEmpty()) {
+                    _message.value = SettingsMessage.ImportFailed("No podcasts found in this file")
+                } else {
+                    _pendingImport.value = outlines
+                }
             } catch (e: Exception) {
                 _message.value = SettingsMessage.ImportFailed(e.message ?: "Unknown error")
             }
         }
+    }
+
+    fun confirmImport() {
+        val outlines = _pendingImport.value ?: return
+        _pendingImport.value = null
+        viewModelScope.launch {
+            _isImporting.value = true
+            try {
+                val result = repository.importOpml(outlines)
+                _message.value = SettingsMessage.ImportComplete(result)
+            } catch (e: Exception) {
+                _message.value = SettingsMessage.ImportFailed(e.message ?: "Unknown error")
+            } finally {
+                _isImporting.value = false
+            }
+        }
+    }
+
+    fun cancelImport() {
+        _pendingImport.value = null
     }
 }

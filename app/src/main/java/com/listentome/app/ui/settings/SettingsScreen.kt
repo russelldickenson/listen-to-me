@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -29,6 +31,7 @@ import androidx.compose.material.icons.filled.SdStorage
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -60,6 +63,8 @@ fun SettingsScreen(
     onOpenDownloads: () -> Unit
 ) {
     val message by viewModel.message.collectAsState()
+    val pendingImport by viewModel.pendingImport.collectAsState()
+    val isImporting by viewModel.isImporting.collectAsState()
     val dynamicColorEnabled by viewModel.dynamicColorEnabled.collectAsState()
     val hidePlayedEpisodes by viewModel.hidePlayedEpisodes.collectAsState()
     val totalDownloadBytes by viewModel.totalDownloadBytes.collectAsState()
@@ -83,7 +88,7 @@ fun SettingsScreen(
 
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
-    ) { uri -> uri?.let(viewModel::importOpml) }
+    ) { uri -> uri?.let(viewModel::previewImport) }
 
     Scaffold(
         topBar = {
@@ -320,6 +325,41 @@ fun SettingsScreen(
                 viewModel.setMaxDownloadStorageBytes(bytes)
                 editingStorageLimit = false
             }
+        )
+    }
+
+    val currentPendingImport = pendingImport
+    if (currentPendingImport != null) {
+        AlertDialog(
+            onDismissRequest = viewModel::cancelImport,
+            title = { Text("Import ${currentPendingImport.size} podcast${if (currentPendingImport.size == 1) "" else "s"}?") },
+            text = {
+                Column(modifier = Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {
+                    currentPendingImport.forEach { outline ->
+                        Text(outline.title, modifier = Modifier.padding(vertical = 4.dp))
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmImport) { Text("Import") }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::cancelImport) { Text("Cancel") }
+            }
+        )
+    }
+
+    if (isImporting) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("Importing subscriptions…") },
+            text = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    Text("Fetching podcast details…", modifier = Modifier.padding(start = 16.dp))
+                }
+            },
+            confirmButton = {}
         )
     }
 

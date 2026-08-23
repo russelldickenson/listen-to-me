@@ -1,8 +1,10 @@
 package com.listentome.app.ui.feedlist
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -40,14 +42,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
+import com.listentome.app.R
 import com.listentome.app.data.Feed
 import com.listentome.app.ui.components.HtmlText
 import kotlin.math.roundToInt
@@ -79,7 +84,24 @@ fun FeedListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Podcasts") },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(RoundedCornerShape(7.dp))
+                                .background(Color(0xFF1A73E8))
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_launcher_foreground),
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        Text("Listen To Me", modifier = Modifier.padding(start = 8.dp))
+                    }
+                },
                 actions = {
                     IconButton(onClick = onOpenQueue) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "Queue")

@@ -7,4 +7,6 @@ export ANDROID_HOME="$HOME/Library/Android/sdk"
 cd "$(dirname "$0")"
 ./gradlew :app:assembleRelease
 
-echo "APK: app/build/outputs/apk/release/listentome.apk"
+cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/launcher.apk
+
+echo "APK: app/build/outputs/apk/release/launcher.apk"

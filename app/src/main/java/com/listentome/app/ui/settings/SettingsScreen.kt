@@ -22,7 +22,7 @@ import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material.icons.filled.PlaylistAdd
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.SdStorage
 import androidx.compose.material.icons.filled.Tune
@@ -166,7 +166,7 @@ fun SettingsScreen(
             ListItem(
                 headlineContent = { Text("Auto-queue downloads") },
                 supportingContent = { Text("Add downloaded episodes to queue") },
-                leadingContent = { Icon(Icons.Default.PlaylistAdd, contentDescription = null) },
+                leadingContent = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null) },
                 trailingContent = {
                     Switch(
                         checked = autoplayQueueEnabled,

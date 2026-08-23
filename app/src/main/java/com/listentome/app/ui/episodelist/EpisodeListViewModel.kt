@@ -29,6 +29,8 @@ class EpisodeListViewModel(application: Application, private val feedId: Long) :
 
     val playback: StateFlow<PlaybackUiState> = playbackController.state
 
+    val downloadProgress: StateFlow<Map<Long, Float>> = repository.downloadProgress
+
     private val visibleCount = MutableStateFlow(PAGE_SIZE)
 
     val episodes: StateFlow<List<Episode>> = visibleCount

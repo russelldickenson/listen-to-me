@@ -13,7 +13,11 @@ import com.listentome.app.opml.OpmlWriter
 import com.listentome.app.settings.AppSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -31,6 +35,10 @@ class PodcastRepository private constructor(context: Context) {
     private val downloadManager = EpisodeDownloadManager(context)
     private val httpClient = OkHttpClient()
     private val appSettings = AppSettings.get(context)
+
+    private val _downloadProgress = MutableStateFlow<Map<Long, Float>>(emptyMap())
+    /** Fraction complete (0f..1f) per episode id, for episodes currently downloading. */
+    val downloadProgress: StateFlow<Map<Long, Float>> = _downloadProgress.asStateFlow()
 
     fun observeFeeds(): Flow<List<Feed>> = feedDao.observeAll()
 
@@ -195,7 +203,12 @@ class PodcastRepository private constructor(context: Context) {
         }
         try {
             episodeDao.updateDownloadState(episode.id, DownloadState.DOWNLOADING, null)
-            val file = downloadManager.download(episode.feedId, episode.id, episode.audioUrl)
+            _downloadProgress.update { it + (episode.id to 0f) }
+            val file = downloadManager.download(episode.feedId, episode.id, episode.audioUrl) { bytesRead, totalBytes ->
+                if (totalBytes > 0) {
+                    _downloadProgress.update { it + (episode.id to (bytesRead.toFloat() / totalBytes).coerceIn(0f, 1f)) }
+                }
+            }
             episodeDao.updateDownloadState(episode.id, DownloadState.DOWNLOADED, file.absolutePath)
             if (appSettings.autoplayQueueEnabled.value && episode.queuePosition == null) {
                 val nextPosition = (episodeDao.getMaxQueuePosition() ?: 0) + 1
@@ -204,6 +217,8 @@ class PodcastRepository private constructor(context: Context) {
             enforceGlobalStorageCap()
         } catch (e: IOException) {
             episodeDao.updateDownloadState(episode.id, DownloadState.FAILED, null)
+        } finally {
+            _downloadProgress.update { it - episode.id }
         }
     }
 

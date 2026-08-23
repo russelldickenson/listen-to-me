@@ -21,7 +21,12 @@ class EpisodeDownloadManager(
     fun fileFor(feedId: Long, episodeId: Long): File =
         File(downloadsDir(feedId), "$episodeId.audio")
 
-    suspend fun download(feedId: Long, episodeId: Long, audioUrl: String): File =
+    suspend fun download(
+        feedId: Long,
+        episodeId: Long,
+        audioUrl: String,
+        onProgress: (bytesRead: Long, totalBytes: Long) -> Unit = { _, _ -> }
+    ): File =
         withContext(Dispatchers.IO) {
             val destination = fileFor(feedId, episodeId)
             val request = Request.Builder().url(audioUrl).build()
@@ -30,9 +35,21 @@ class EpisodeDownloadManager(
                     throw IOException("Failed to download episode: HTTP ${response.code}")
                 }
                 val body = response.body ?: throw IOException("Empty response body")
+                val totalBytes = body.contentLength()
                 val tempFile = File(destination.parentFile, "${destination.name}.tmp")
-                tempFile.outputStream().use { out ->
-                    body.byteStream().copyTo(out)
+                body.byteStream().use { input ->
+                    tempFile.outputStream().use { out ->
+                        val buffer = ByteArray(8 * 1024)
+                        var bytesRead = 0L
+                        var read: Int
+                        while (input.read(buffer).also { read = it } >= 0) {
+                            if (read > 0) {
+                                out.write(buffer, 0, read)
+                                bytesRead += read
+                                onProgress(bytesRead, totalBytes)
+                            }
+                        }
+                    }
                 }
                 if (destination.exists()) destination.delete()
                 tempFile.renameTo(destination)

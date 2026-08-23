@@ -37,10 +37,12 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -80,8 +82,9 @@ fun EpisodeListScreen(
     val episodes by viewModel.episodes.collectAsState()
     val hasMoreEpisodes by viewModel.hasMoreEpisodes.collectAsState()
     val playback by viewModel.playback.collectAsState()
+    val downloadProgress by viewModel.downloadProgress.collectAsState()
     var showSettings by remember { mutableStateOf(false) }
-    var actionsEpisode by remember { mutableStateOf<Episode?>(null) }
+    var actionsEpisodeId by remember { mutableStateOf<Long?>(null) }
 
     Scaffold(
         topBar = {
@@ -115,9 +118,10 @@ fun EpisodeListScreen(
                         episode = episode,
                         fallbackArtworkUrl = feed?.imageUrl,
                         isPlaying = isCurrentEpisode && playback.isPlaying,
+                        downloadProgress = downloadProgress[episode.id],
                         onOpenPlayer = onPlay,
                         onPlayPauseClick = { viewModel.playOrToggle(episode, onOpenPlayer = onPlay) },
-                        onLongPress = { actionsEpisode = episode }
+                        onLongPress = { actionsEpisodeId = episode.id }
                     )
                 }
                 if (hasMoreEpisodes) {
@@ -150,10 +154,12 @@ fun EpisodeListScreen(
         )
     }
 
+    val actionsEpisode = actionsEpisodeId?.let { id -> episodes.find { it.id == id } }
     actionsEpisode?.let { episode ->
         EpisodeActionsSheet(
             episode = episode,
-            onDismiss = { actionsEpisode = null },
+            downloadProgress = downloadProgress[episode.id],
+            onDismiss = { actionsEpisodeId = null },
             onDownload = { viewModel.download(episode) },
             onDeleteDownload = { viewModel.deleteDownload(episode) },
             onMarkAsPlayed = { viewModel.markAsPlayed(episode) },
@@ -172,6 +178,7 @@ fun EpisodeListScreen(
 @Composable
 private fun EpisodeActionsSheet(
     episode: Episode,
+    downloadProgress: Float?,
     onDismiss: () -> Unit,
     onDownload: () -> Unit,
     onDeleteDownload: () -> Unit,
@@ -199,9 +206,19 @@ private fun EpisodeActionsSheet(
             )
             DownloadState.DOWNLOADING -> EpisodeActionItem(
                 icon = Icons.Default.Download,
-                label = "Downloading…",
+                label = if (downloadProgress != null) "Downloading… ${(downloadProgress * 100).toInt()}%" else "Downloading…",
                 enabled = false,
-                onClick = {}
+                onClick = {},
+                supportingContent = {
+                    if (downloadProgress != null) {
+                        LinearProgressIndicator(
+                            progress = { downloadProgress },
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                        )
+                    } else {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
+                    }
+                }
             )
             DownloadState.DOWNLOADED -> EpisodeActionItem(
                 icon = Icons.Default.Delete,
@@ -235,11 +252,13 @@ private fun EpisodeActionItem(
     icon: ImageVector,
     label: String,
     enabled: Boolean = true,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    supportingContent: (@Composable () -> Unit)? = null
 ) {
     ListItem(
         headlineContent = { Text(label) },
         leadingContent = { Icon(icon, contentDescription = null) },
+        supportingContent = supportingContent,
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         modifier = Modifier
             .fillMaxWidth()
@@ -332,6 +351,7 @@ private fun EpisodeRow(
     episode: Episode,
     fallbackArtworkUrl: String?,
     isPlaying: Boolean,
+    downloadProgress: Float?,
     onOpenPlayer: () -> Unit,
     onPlayPauseClick: () -> Unit,
     onLongPress: () -> Unit
@@ -381,6 +401,23 @@ private fun EpisodeRow(
                             .background(MaterialTheme.colorScheme.error, CircleShape)
                             .padding(3.dp)
                     )
+                }
+                if (episode.downloadState == DownloadState.DOWNLOADING) {
+                    if (downloadProgress != null) {
+                        CircularProgressIndicator(
+                            progress = { downloadProgress },
+                            modifier = Modifier.align(Alignment.Center).size(28.dp),
+                            strokeWidth = 3.dp,
+                            color = Color.White,
+                            trackColor = Color.Black.copy(alpha = 0.4f)
+                        )
+                    } else {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center).size(28.dp),
+                            strokeWidth = 3.dp,
+                            color = Color.White
+                        )
+                    }
                 }
             }
             Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {

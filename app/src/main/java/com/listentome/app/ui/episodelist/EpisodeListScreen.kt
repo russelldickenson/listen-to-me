@@ -65,6 +65,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.listentome.app.data.DownloadState
 import com.listentome.app.data.Episode
@@ -421,7 +422,12 @@ private fun EpisodeRow(
                 }
             }
             Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-                Text(episode.title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(
+                    episode.title,
+                    style = MaterialTheme.typography.titleSmall.copy(lineHeight = 17.sp),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
                 val durationMs = episode.durationSeconds?.times(1000)
                 if (!episode.isFinished && episode.playbackPositionMs > 0 && durationMs != null && durationMs > 0) {
                     LinearProgressIndicator(

@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoDelete
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
@@ -58,6 +59,7 @@ fun SettingsScreen(
     onOpenDownloads: () -> Unit
 ) {
     val message by viewModel.message.collectAsState()
+    val hidePlayedEpisodes by viewModel.hidePlayedEpisodes.collectAsState()
     val totalDownloadBytes by viewModel.totalDownloadBytes.collectAsState()
     val autoplayQueueEnabled by viewModel.autoplayQueueEnabled.collectAsState()
     val wifiOnlyDownloads by viewModel.wifiOnlyDownloads.collectAsState()
@@ -111,6 +113,25 @@ fun SettingsScreen(
                     .clickable {
                         importLauncher.launch(arrayOf("text/x-opml", "text/xml", "application/xml", "*/*"))
                     }
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            SectionHeader("Episode list")
+
+            ListItem(
+                headlineContent = { Text("Hide played episodes") },
+                supportingContent = { Text("Don't show episodes that have already been played") },
+                leadingContent = { Icon(Icons.Default.VisibilityOff, contentDescription = null) },
+                trailingContent = {
+                    Switch(
+                        checked = hidePlayedEpisodes,
+                        onCheckedChange = viewModel::setHidePlayedEpisodes
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.setHidePlayedEpisodes(!hidePlayedEpisodes) }
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))

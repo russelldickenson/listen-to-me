@@ -37,6 +37,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
 
+    val hidePlayedEpisodes: StateFlow<Boolean> = appSettings.hidePlayedEpisodes
+
+    fun setHidePlayedEpisodes(enabled: Boolean) {
+        appSettings.setHidePlayedEpisodes(enabled)
+    }
+
     val autoplayQueueEnabled: StateFlow<Boolean> = appSettings.autoplayQueueEnabled
 
     fun setAutoplayQueueEnabled(enabled: Boolean) {

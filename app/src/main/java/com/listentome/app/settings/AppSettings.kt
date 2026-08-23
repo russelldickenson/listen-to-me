@@ -73,6 +73,14 @@ class AppSettings private constructor(context: Context) {
         _autoDeletePlayedEnabled.value = enabled
     }
 
+    private val _hidePlayedEpisodes = MutableStateFlow(prefs.getBoolean(KEY_HIDE_PLAYED_EPISODES, true))
+    val hidePlayedEpisodes: StateFlow<Boolean> = _hidePlayedEpisodes.asStateFlow()
+
+    fun setHidePlayedEpisodes(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_HIDE_PLAYED_EPISODES, enabled).apply()
+        _hidePlayedEpisodes.value = enabled
+    }
+
     companion object {
         private const val KEY_AUTOPLAY_QUEUE = "autoplay_queue_enabled"
         private const val KEY_SKIP_FORWARD_SECONDS = "skip_forward_seconds"
@@ -82,6 +90,7 @@ class AppSettings private constructor(context: Context) {
         private const val KEY_DEFAULT_KEEP_LATEST_COUNT = "default_keep_latest_count"
         private const val KEY_MAX_DOWNLOAD_STORAGE_BYTES = "max_download_storage_bytes"
         private const val KEY_AUTO_DELETE_PLAYED = "auto_delete_played_enabled"
+        private const val KEY_HIDE_PLAYED_EPISODES = "hide_played_episodes"
         const val DEFAULT_SKIP_FORWARD_SECONDS = 30
         const val DEFAULT_SKIP_BACK_SECONDS = 15
         const val AUTO_SKIP_BACK_ON_RESUME_SECONDS = 3

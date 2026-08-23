@@ -164,6 +164,14 @@ fun SettingsScreen(
                     .clickable { editingStorageLimit = true }
             )
             ListItem(
+                headlineContent = { Text("Auto-download episodes") },
+                supportingContent = { Text("Automatically download the latest N episodes. Set to 0 to disable downloads.") },
+                leadingContent = { Icon(Icons.Default.Tune, contentDescription = null) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { editingDefaultKeepLatestCount = true }
+            )
+            ListItem(
                 headlineContent = { Text("Auto-queue downloads") },
                 supportingContent = { Text("Add downloaded episodes to queue") },
                 leadingContent = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null) },
@@ -190,14 +198,6 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { viewModel.setWifiOnlyDownloads(!wifiOnlyDownloads) }
-            )
-            ListItem(
-                headlineContent = { Text("Default keep-latest count") },
-                supportingContent = { Text("New feeds start by keeping the latest $defaultKeepLatestCount episodes downloaded") },
-                leadingContent = { Icon(Icons.Default.Tune, contentDescription = null) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { editingDefaultKeepLatestCount = true }
             )
             ListItem(
                 headlineContent = { Text("Mark played episodes as auto-deleted") },
@@ -277,7 +277,7 @@ fun SettingsScreen(
 
     if (editingDefaultKeepLatestCount) {
         NumberStepperDialog(
-            title = "Default keep-latest count",
+            title = "Auto-download episodes",
             currentValue = defaultKeepLatestCount,
             unitLabel = "episodes",
             step = 1,

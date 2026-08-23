@@ -334,7 +334,11 @@ private fun FeedSettingsDialog(
         title = { Text("Feed settings") },
         text = {
             Column {
-                Text("Automatically download the latest N episodes. Set to 0 to disable downloads.")
+                Text("Auto-download episodes", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "Automatically download the latest N episodes. Set to 0 to disable downloads.",
+                    modifier = Modifier.padding(top = 4.dp)
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                     horizontalArrangement = Arrangement.Center,

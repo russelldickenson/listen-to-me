@@ -74,7 +74,7 @@ class PlaybackController private constructor(private val context: Context) {
         }
     }
 
-    suspend fun playEpisode(episodeId: Long, title: String, artist: String, artworkUri: String?, uri: String, startPositionMs: Long) {
+    suspend fun playEpisode(episodeId: Long, title: String, artist: String, artworkUri: String?, uri: String, startPositionMs: Long, autoPlay: Boolean = true) {
         _state.value = _state.value.copy(currentEpisodeId = episodeId, positionMs = startPositionMs, isBuffering = true, isQueuePlaylist = false)
         val c = ensureController()
         val metadata = MediaMetadata.Builder()
@@ -89,11 +89,11 @@ class PlaybackController private constructor(private val context: Context) {
             .build()
         c.setMediaItem(mediaItem, startPositionMs)
         c.prepare()
-        c.playWhenReady = true
+        c.playWhenReady = autoPlay
         startPolling()
     }
 
-    suspend fun playQueue(tracks: List<QueueTrack>, startIndex: Int, startPositionMs: Long) {
+    suspend fun playQueue(tracks: List<QueueTrack>, startIndex: Int, startPositionMs: Long, autoPlay: Boolean = true) {
         if (tracks.isEmpty()) return
         _state.value = _state.value.copy(currentEpisodeId = tracks[startIndex].episodeId, positionMs = startPositionMs, isBuffering = true, isQueuePlaylist = true)
         val c = ensureController()
@@ -111,7 +111,7 @@ class PlaybackController private constructor(private val context: Context) {
         }
         c.setMediaItems(mediaItems, startIndex, startPositionMs)
         c.prepare()
-        c.playWhenReady = true
+        c.playWhenReady = autoPlay
         startPolling()
     }
 

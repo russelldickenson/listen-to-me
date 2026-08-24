@@ -80,7 +80,7 @@ class EpisodeListViewModel(application: Application, private val feedId: Long) :
         }
     }
 
-    fun play(episode: Episode) {
+    fun play(episode: Episode, autoPlay: Boolean = true) {
         viewModelScope.launch {
             val feedTitle = feed.value?.title ?: ""
             val source = episode.localFilePath
@@ -92,17 +92,19 @@ class EpisodeListViewModel(application: Application, private val feedId: Long) :
                 artist = feedTitle,
                 artworkUri = episode.imageUrl ?: feed.value?.imageUrl,
                 uri = source,
-                startPositionMs = episode.playbackPositionMs
+                startPositionMs = episode.playbackPositionMs,
+                autoPlay = autoPlay
             )
         }
     }
 
-    /** Plays the given episode, or toggles play/pause in place if it's already the current one. */
-    fun playOrToggle(episode: Episode, onOpenPlayer: () -> Unit) {
-        if (playback.value.currentEpisodeId == episode.id) {
-            viewModelScope.launch { playbackController.togglePlayPause() }
-        } else {
-            play(episode)
+    /**
+     * Loads the given episode (without starting playback) unless it's already the current one,
+     * then opens the full-screen player. Play/pause only happens from the player screen.
+     */
+    fun openEpisode(episode: Episode, onOpenPlayer: () -> Unit) {
+        if (playback.value.currentEpisodeId != episode.id) {
+            play(episode, autoPlay = false)
         }
         onOpenPlayer()
     }

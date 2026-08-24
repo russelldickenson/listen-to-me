@@ -45,11 +45,12 @@ class QueueViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { repository.removeFromQueue(episode.id) }
     }
 
-    /** Plays the given item, or toggles play/pause in place if it's already the current one. */
-    fun playOrToggle(item: QueueItem, onOpenPlayer: () -> Unit) {
-        if (playback.value.currentEpisodeId == item.episode.id) {
-            viewModelScope.launch { playbackController.togglePlayPause() }
-        } else {
+    /**
+     * Loads the given item (without starting playback) unless it's already the current one,
+     * then opens the full-screen player. Play/pause only happens from the player screen.
+     */
+    fun openEpisode(item: QueueItem, onOpenPlayer: () -> Unit) {
+        if (playback.value.currentEpisodeId != item.episode.id) {
             play(item)
         }
         onOpenPlayer()
@@ -90,7 +91,8 @@ class QueueViewModel(application: Application) : AndroidViewModel(application) {
                 artist = item.feed?.title ?: "",
                 artworkUri = item.episode.imageUrl ?: item.feed?.imageUrl,
                 uri = source,
-                startPositionMs = item.episode.playbackPositionMs
+                startPositionMs = item.episode.playbackPositionMs,
+                autoPlay = false
             )
         }
     }

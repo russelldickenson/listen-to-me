@@ -158,7 +158,7 @@ fun EpisodeListScreen(
                         isPlaying = isCurrentEpisode && playback.isPlaying,
                         isBuffering = isCurrentEpisode && playback.isBuffering,
                         isDragging = isDragging,
-                        onPlayPauseClick = { viewModel.playOrToggle(episode, onOpenPlayer = onPlay) },
+                        onPlayPauseClick = { viewModel.openEpisode(episode, onOpenPlayer = onPlay) },
                         onOpenActions = { actionsEpisodeId = episode.id },
                         modifier = Modifier
                             .zIndex(if (isDragging) 1f else 0f)

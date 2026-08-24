@@ -114,7 +114,7 @@ fun QueueScreen(
                         isPlaying = isCurrentEpisode && playback.isPlaying,
                         isBuffering = isCurrentEpisode && playback.isBuffering,
                         isDragging = isDragging,
-                        onPlay = { viewModel.playOrToggle(item, onOpenPlayer = onPlay) },
+                        onPlay = { viewModel.openEpisode(item, onOpenPlayer = onPlay) },
                         onRemove = { viewModel.removeFromQueue(item.episode) },
                         modifier = Modifier
                             .zIndex(if (isDragging) 1f else 0f)

@@ -115,10 +115,14 @@ fun EpisodeListScreen(
                         AsyncImage(
                             model = feed?.imageUrl,
                             contentDescription = null,
-                            modifier = Modifier.size(36.dp).clip(RoundedCornerShape(6.dp)),
+                            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)),
                             contentScale = ContentScale.Crop
                         )
-                        Text(feed?.title ?: "", modifier = Modifier.padding(start = 8.dp))
+                        Text(
+                            feed?.title ?: "",
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
                     }
                 },
                 navigationIcon = {

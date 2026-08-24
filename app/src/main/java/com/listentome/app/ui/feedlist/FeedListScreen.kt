@@ -220,7 +220,7 @@ private fun FeedRow(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.fillMaxWidth().height(FeedRowHeight).padding(bottom = 12.dp).clickable(onClick = onClick),
+        modifier = modifier.fillMaxWidth().padding(bottom = 12.dp).clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 1.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isDragging) {
@@ -232,7 +232,7 @@ private fun FeedRow(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
             AsyncImage(
                 model = feed.imageUrl,
@@ -246,9 +246,7 @@ private fun FeedRow(
                 Text(feed.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 HtmlText(
                     html = feed.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
         }

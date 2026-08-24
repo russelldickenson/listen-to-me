@@ -77,7 +77,7 @@ import com.listentome.app.ui.components.EpisodeInfoColumn
 import com.listentome.app.ui.components.HtmlText
 import kotlin.math.roundToInt
 
-private val EpisodeRowHeight = 144.dp
+private val EpisodeRowHeight = 128.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

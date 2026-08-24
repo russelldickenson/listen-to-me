@@ -49,7 +49,7 @@ import com.listentome.app.ui.components.EpisodeArtwork
 import com.listentome.app.ui.components.EpisodeInfoColumn
 import kotlin.math.roundToInt
 
-private val QueueRowHeight = 144.dp
+private val QueueRowHeight = 128.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

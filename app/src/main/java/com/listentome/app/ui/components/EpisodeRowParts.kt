@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
@@ -60,79 +60,81 @@ fun EpisodeArtwork(
     isPlaying: Boolean = false,
     isBuffering: Boolean = false
 ) {
-    val textColor = LocalContentColor.current
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Box {
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = contentDescription,
+    Box(modifier = modifier) {
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = contentDescription,
+            modifier = Modifier
+                .size(56.dp)
+                .alpha(if (isFinished) 0.5f else 1f)
+                .clip(RoundedCornerShape(8.dp)),
+            contentScale = ContentScale.Crop
+        )
+        if (isCurrentEpisode) {
+            Box(
                 modifier = Modifier
                     .size(56.dp)
-                    .alpha(if (isFinished) 0.5f else 1f)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop
-            )
-            if (isCurrentEpisode) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color.Black.copy(alpha = 0.45f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isBuffering) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp,
-                            color = Color.White
-                        )
-                    } else {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (isPlaying) "Playing" else "Paused",
-                            tint = Color.White,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                }
-            }
-            if (downloadState == DownloadState.FAILED) {
-                Icon(
-                    Icons.Default.ErrorOutline,
-                    contentDescription = "Download failed",
-                    tint = MaterialTheme.colorScheme.onError,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .offset(x = 4.dp, y = 4.dp)
-                        .size(18.dp)
-                        .background(MaterialTheme.colorScheme.error, CircleShape)
-                        .padding(3.dp)
-                )
-            }
-            if (downloadState == DownloadState.DOWNLOADING) {
-                if (downloadProgress != null) {
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.Black.copy(alpha = 0.45f)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isBuffering) {
                     CircularProgressIndicator(
-                        progress = { downloadProgress },
-                        modifier = Modifier.align(Alignment.Center).size(28.dp),
-                        strokeWidth = 3.dp,
-                        color = Color.White,
-                        trackColor = Color.Black.copy(alpha = 0.4f)
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp,
+                        color = Color.White
                     )
                 } else {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center).size(28.dp),
-                        strokeWidth = 3.dp,
-                        color = Color.White
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isPlaying) "Playing" else "Paused",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
                     )
                 }
             }
         }
+        if (downloadState == DownloadState.FAILED) {
+            Icon(
+                Icons.Default.ErrorOutline,
+                contentDescription = "Download failed",
+                tint = MaterialTheme.colorScheme.onError,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .offset(x = 4.dp, y = 4.dp)
+                    .size(18.dp)
+                    .background(MaterialTheme.colorScheme.error, CircleShape)
+                    .padding(3.dp)
+            )
+        }
+        if (downloadState == DownloadState.DOWNLOADING) {
+            if (downloadProgress != null) {
+                CircularProgressIndicator(
+                    progress = { downloadProgress },
+                    modifier = Modifier.align(Alignment.Center).size(28.dp),
+                    strokeWidth = 3.dp,
+                    color = Color.White,
+                    trackColor = Color.Black.copy(alpha = 0.4f)
+                )
+            } else {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center).size(28.dp),
+                    strokeWidth = 3.dp,
+                    color = Color.White
+                )
+            }
+        }
         if (isQueued) {
             Icon(
-                Icons.Default.Menu,
+                Icons.AutoMirrored.Filled.QueueMusic,
                 contentDescription = "In queue",
-                tint = textColor,
-                modifier = Modifier.padding(top = 4.dp).size(34.dp)
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .offset(x = (-4).dp, y = 4.dp)
+                    .size(18.dp)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+                    .padding(3.dp)
             )
         }
     }

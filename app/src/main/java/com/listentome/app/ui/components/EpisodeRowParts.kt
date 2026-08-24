@@ -107,23 +107,6 @@ fun EpisodeArtwork(
                     .padding(3.dp)
             )
         }
-        if (downloadState == DownloadState.DOWNLOADING) {
-            if (downloadProgress != null) {
-                CircularProgressIndicator(
-                    progress = { downloadProgress },
-                    modifier = Modifier.align(Alignment.Center).size(28.dp),
-                    strokeWidth = 3.dp,
-                    color = Color.White,
-                    trackColor = Color.Black.copy(alpha = 0.4f)
-                )
-            } else {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center).size(28.dp),
-                    strokeWidth = 3.dp,
-                    color = Color.White
-                )
-            }
-        }
         if (isQueued) {
             Icon(
                 Icons.AutoMirrored.Filled.QueueMusic,

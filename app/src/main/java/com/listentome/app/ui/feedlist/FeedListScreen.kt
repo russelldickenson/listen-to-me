@@ -251,8 +251,6 @@ private fun FeedRow(
                     Text(
                         feed.title,
                         style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = { expanded = !expanded }) {

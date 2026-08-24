@@ -173,7 +173,7 @@ private fun QueueRow(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             EpisodeArtwork(

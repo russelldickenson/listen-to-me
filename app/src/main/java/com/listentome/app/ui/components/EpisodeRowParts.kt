@@ -132,7 +132,7 @@ fun EpisodeArtwork(
                 Icons.Default.Menu,
                 contentDescription = "In queue",
                 tint = textColor,
-                modifier = Modifier.padding(top = 4.dp).size(28.dp)
+                modifier = Modifier.padding(top = 4.dp).size(56.dp)
             )
         }
     }

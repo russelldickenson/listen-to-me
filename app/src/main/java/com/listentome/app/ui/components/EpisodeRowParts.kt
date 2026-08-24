@@ -4,7 +4,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -15,7 +14,6 @@ import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -170,8 +168,6 @@ fun DownloadStatusRing(downloadState: DownloadState, downloadProgress: Float?, m
 fun EpisodeInfoColumn(
     title: String,
     publishedAt: Long,
-    playbackPositionMs: Long,
-    durationSeconds: Long?,
     isFinished: Boolean,
     modifier: Modifier = Modifier,
     subtitle: String? = null
@@ -179,7 +175,7 @@ fun EpisodeInfoColumn(
     Column(modifier = modifier) {
         Text(
             title,
-            style = MaterialTheme.typography.titleSmall.copy(lineHeight = 17.sp),
+            style = MaterialTheme.typography.titleSmall.copy(fontSize = 16.sp, lineHeight = 19.sp),
             color = if (isFinished) LocalContentColor.current.copy(alpha = 0.6f) else Color.Unspecified,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
@@ -190,14 +186,6 @@ fun EpisodeInfoColumn(
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
-            )
-        }
-        val durationMs = durationSeconds?.times(1000)
-        if (!isFinished && playbackPositionMs > 0 && durationMs != null && durationMs > 0) {
-            LinearProgressIndicator(
-                progress = { (playbackPositionMs.toFloat() / durationMs).coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp),
-                trackColor = MaterialTheme.colorScheme.surfaceVariant
             )
         }
         Text(

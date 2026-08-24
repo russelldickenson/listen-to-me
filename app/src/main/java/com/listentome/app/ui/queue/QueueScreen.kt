@@ -187,8 +187,6 @@ private fun QueueRow(
             EpisodeInfoColumn(
                 title = item.episode.title,
                 publishedAt = item.episode.publishedAt,
-                playbackPositionMs = item.episode.playbackPositionMs,
-                durationSeconds = item.episode.durationSeconds,
                 isFinished = item.episode.isFinished,
                 subtitle = item.feed?.title,
                 modifier = Modifier.weight(1f).padding(start = 12.dp)

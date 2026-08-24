@@ -492,8 +492,6 @@ private fun EpisodeRow(
             EpisodeInfoColumn(
                 title = episode.title,
                 publishedAt = episode.publishedAt,
-                playbackPositionMs = episode.playbackPositionMs,
-                durationSeconds = episode.durationSeconds,
                 isFinished = episode.isFinished,
                 modifier = Modifier.weight(1f).padding(start = 12.dp)
             )

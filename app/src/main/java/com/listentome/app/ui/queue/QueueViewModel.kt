@@ -7,6 +7,7 @@ import com.listentome.app.data.Episode
 import com.listentome.app.data.Feed
 import com.listentome.app.playback.PlaybackController
 import com.listentome.app.playback.PlaybackUiState
+import com.listentome.app.playback.QueueTrack
 import com.listentome.app.repository.PodcastRepository
 import com.listentome.app.settings.AppSettings
 import kotlinx.coroutines.flow.SharingStarted
@@ -51,6 +52,30 @@ class QueueViewModel(application: Application) : AndroidViewModel(application) {
             play(item)
         }
         onOpenPlayer()
+    }
+
+    /** Toggles play/pause if the current track is already part of the queue, otherwise starts playing the queue from the top. */
+    fun toggleQueuePlayback() {
+        val items = queue.value
+        if (items.isEmpty()) return
+        if (playback.value.isQueuePlaylist && items.any { it.episode.id == playback.value.currentEpisodeId }) {
+            viewModelScope.launch { playbackController.togglePlayPause() }
+        } else {
+            viewModelScope.launch {
+                val tracks = items.map { item ->
+                    QueueTrack(
+                        episodeId = item.episode.id,
+                        title = item.episode.title,
+                        artist = item.feed?.title ?: "",
+                        artworkUri = item.episode.imageUrl ?: item.feed?.imageUrl,
+                        uri = item.episode.localFilePath
+                            ?.let { android.net.Uri.fromFile(java.io.File(it)).toString() }
+                            ?: item.episode.audioUrl
+                    )
+                }
+                playbackController.playQueue(tracks, startIndex = 0, startPositionMs = items[0].episode.playbackPositionMs)
+            }
+        }
     }
 
     private fun play(item: QueueItem) {

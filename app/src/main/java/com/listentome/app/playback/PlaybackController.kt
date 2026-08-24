@@ -25,7 +25,16 @@ data class PlaybackUiState(
     val isPlaying: Boolean = false,
     val isBuffering: Boolean = false,
     val positionMs: Long = 0,
-    val durationMs: Long = 0
+    val durationMs: Long = 0,
+    val isQueuePlaylist: Boolean = false
+)
+
+data class QueueTrack(
+    val episodeId: Long,
+    val title: String,
+    val artist: String,
+    val artworkUri: String?,
+    val uri: String
 )
 
 class PlaybackController private constructor(private val context: Context) {
@@ -66,7 +75,7 @@ class PlaybackController private constructor(private val context: Context) {
     }
 
     suspend fun playEpisode(episodeId: Long, title: String, artist: String, artworkUri: String?, uri: String, startPositionMs: Long) {
-        _state.value = _state.value.copy(currentEpisodeId = episodeId, positionMs = startPositionMs, isBuffering = true)
+        _state.value = _state.value.copy(currentEpisodeId = episodeId, positionMs = startPositionMs, isBuffering = true, isQueuePlaylist = false)
         val c = ensureController()
         val metadata = MediaMetadata.Builder()
             .setTitle(title)
@@ -79,6 +88,28 @@ class PlaybackController private constructor(private val context: Context) {
             .setMediaMetadata(metadata)
             .build()
         c.setMediaItem(mediaItem, startPositionMs)
+        c.prepare()
+        c.playWhenReady = true
+        startPolling()
+    }
+
+    suspend fun playQueue(tracks: List<QueueTrack>, startIndex: Int, startPositionMs: Long) {
+        if (tracks.isEmpty()) return
+        _state.value = _state.value.copy(currentEpisodeId = tracks[startIndex].episodeId, positionMs = startPositionMs, isBuffering = true, isQueuePlaylist = true)
+        val c = ensureController()
+        val mediaItems = tracks.map { track ->
+            val metadata = MediaMetadata.Builder()
+                .setTitle(track.title)
+                .setArtist(track.artist)
+                .apply { track.artworkUri?.let { setArtworkUri(android.net.Uri.parse(it)) } }
+                .build()
+            MediaItem.Builder()
+                .setMediaId(track.episodeId.toString())
+                .setUri(track.uri)
+                .setMediaMetadata(metadata)
+                .build()
+        }
+        c.setMediaItems(mediaItems, startIndex, startPositionMs)
         c.prepare()
         c.playWhenReady = true
         startPolling()

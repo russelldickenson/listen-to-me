@@ -17,6 +17,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -56,6 +58,7 @@ fun QueueScreen(
     onPlay: () -> Unit
 ) {
     val queue by viewModel.queue.collectAsState()
+    val playback by viewModel.playback.collectAsState()
 
     var items by remember { mutableStateOf(queue) }
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
@@ -73,6 +76,18 @@ fun QueueScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (items.isNotEmpty()) {
+                        val isQueuePlaying = playback.isPlaying && playback.isQueuePlaylist &&
+                            items.any { it.episode.id == playback.currentEpisodeId }
+                        IconButton(onClick = viewModel::toggleQueuePlayback) {
+                            Icon(
+                                imageVector = if (isQueuePlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = if (isQueuePlaying) "Pause queue" else "Play queue"
+                            )
+                        }
                     }
                 }
             )

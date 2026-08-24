@@ -106,9 +106,13 @@ fun QueueScreen(
             LazyColumn(contentPadding = PaddingValues(16.dp), modifier = Modifier.padding(padding)) {
                 itemsIndexed(items, key = { _, item -> item.episode.id }) { index, item ->
                     val isDragging = index == draggedIndex
+                    val isCurrentEpisode = playback.currentEpisodeId == item.episode.id
                     QueueRow(
                         item = item,
                         downloadProgress = downloadProgress[item.episode.id],
+                        isCurrentEpisode = isCurrentEpisode,
+                        isPlaying = isCurrentEpisode && playback.isPlaying,
+                        isBuffering = isCurrentEpisode && playback.isBuffering,
                         isDragging = isDragging,
                         onPlay = { viewModel.playOrToggle(item, onOpenPlayer = onPlay) },
                         onRemove = { viewModel.removeFromQueue(item.episode) },
@@ -155,6 +159,9 @@ fun QueueScreen(
 private fun QueueRow(
     item: QueueItem,
     downloadProgress: Float?,
+    isCurrentEpisode: Boolean,
+    isPlaying: Boolean,
+    isBuffering: Boolean,
     isDragging: Boolean,
     onPlay: () -> Unit,
     onRemove: () -> Unit,
@@ -182,7 +189,10 @@ private fun QueueRow(
                 downloadState = item.episode.downloadState,
                 downloadProgress = downloadProgress,
                 isFinished = item.episode.isFinished,
-                isQueued = item.episode.queuePosition != null
+                isQueued = item.episode.queuePosition != null,
+                isCurrentEpisode = isCurrentEpisode,
+                isPlaying = isPlaying,
+                isBuffering = isBuffering
             )
             EpisodeInfoColumn(
                 title = item.episode.title,

@@ -90,6 +90,7 @@ fun EpisodeListScreen(
     val episodes by viewModel.episodes.collectAsState()
     val hasMoreEpisodes by viewModel.hasMoreEpisodes.collectAsState()
     val downloadProgress by viewModel.downloadProgress.collectAsState()
+    val playback by viewModel.playback.collectAsState()
     var showSettings by remember { mutableStateOf(false) }
     var showDetails by remember { mutableStateOf(false) }
     var actionsEpisodeId by remember { mutableStateOf<Long?>(null) }
@@ -144,10 +145,14 @@ fun EpisodeListScreen(
             LazyColumn(contentPadding = PaddingValues(16.dp), modifier = Modifier.padding(padding)) {
                 itemsIndexed(items, key = { _, episode -> episode.id }) { index, episode ->
                     val isDragging = index == draggedIndex
+                    val isCurrentEpisode = playback.currentEpisodeId == episode.id
                     EpisodeRow(
                         episode = episode,
                         fallbackArtworkUrl = feed?.imageUrl,
                         downloadProgress = downloadProgress[episode.id],
+                        isCurrentEpisode = isCurrentEpisode,
+                        isPlaying = isCurrentEpisode && playback.isPlaying,
+                        isBuffering = isCurrentEpisode && playback.isBuffering,
                         isDragging = isDragging,
                         onPlayPauseClick = { viewModel.playOrToggle(episode, onOpenPlayer = onPlay) },
                         onOpenActions = { actionsEpisodeId = episode.id },
@@ -456,6 +461,9 @@ private fun EpisodeRow(
     episode: Episode,
     fallbackArtworkUrl: String?,
     downloadProgress: Float?,
+    isCurrentEpisode: Boolean,
+    isPlaying: Boolean,
+    isBuffering: Boolean,
     isDragging: Boolean,
     onPlayPauseClick: () -> Unit,
     onOpenActions: () -> Unit,
@@ -487,7 +495,10 @@ private fun EpisodeRow(
                 downloadState = episode.downloadState,
                 downloadProgress = downloadProgress,
                 isFinished = episode.isFinished,
-                isQueued = episode.queuePosition != null
+                isQueued = episode.queuePosition != null,
+                isCurrentEpisode = isCurrentEpisode,
+                isPlaying = isPlaying,
+                isBuffering = isBuffering
             )
             EpisodeInfoColumn(
                 title = episode.title,

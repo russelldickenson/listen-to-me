@@ -12,6 +12,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -41,7 +43,9 @@ import kotlin.math.sin
 /**
  * Episode artwork with the download-failed/downloading state overlaid on the image, and the
  * downloaded/queued state shown as small icons underneath, tinted to match the row's text
- * color. Dims the artwork when the episode has been played.
+ * color. Dims the artwork when the episode has been played. When [isCurrentEpisode] is true
+ * (this is the episode loaded in the player), a translucent scrim and play/pause/buffering
+ * glyph are overlaid on the artwork to mark it as the currently playing episode.
  */
 @Composable
 fun EpisodeArtwork(
@@ -51,7 +55,10 @@ fun EpisodeArtwork(
     downloadProgress: Float?,
     isFinished: Boolean,
     isQueued: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isCurrentEpisode: Boolean = false,
+    isPlaying: Boolean = false,
+    isBuffering: Boolean = false
 ) {
     val textColor = LocalContentColor.current
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -65,6 +72,30 @@ fun EpisodeArtwork(
                     .clip(RoundedCornerShape(8.dp)),
                 contentScale = ContentScale.Crop
             )
+            if (isCurrentEpisode) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.Black.copy(alpha = 0.45f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isBuffering) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp,
+                            color = Color.White
+                        )
+                    } else {
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = if (isPlaying) "Playing" else "Paused",
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
+            }
             if (downloadState == DownloadState.FAILED) {
                 Icon(
                     Icons.Default.ErrorOutline,

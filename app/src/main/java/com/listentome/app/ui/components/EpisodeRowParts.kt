@@ -2,8 +2,10 @@ package com.listentome.app.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -12,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -98,28 +101,41 @@ fun EpisodeArtwork(
                 }
             }
         }
-        if (isQueued) {
-            Icon(
-                Icons.AutoMirrored.Filled.QueueMusic,
-                contentDescription = "In queue",
-                tint = textColor,
-                modifier = Modifier.padding(top = 4.dp).size(36.dp)
-            )
+        if (downloadState == DownloadState.DOWNLOADED || isQueued) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 4.dp)) {
+                if (downloadState == DownloadState.DOWNLOADED) {
+                    Icon(
+                        Icons.Default.Download,
+                        contentDescription = "Downloaded",
+                        tint = textColor,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+                if (isQueued) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.QueueMusic,
+                        contentDescription = "In queue",
+                        tint = textColor,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+            }
         }
     }
 }
 
 /**
- * Ring that traces the episode-actions button to show download status: a light gray track
- * before a download starts, filling in with blue (and a leading dot) as it downloads, ending
- * as a full blue ring once downloaded.
+ * Ring that traces the episode-actions button to show in-progress download status: a light
+ * gray track before a download starts, filling in with blue (and a leading dot) as it
+ * downloads. Disappears once the download completes — the artwork shows a downloaded badge
+ * instead at that point.
  */
 @Composable
 fun DownloadStatusRing(downloadState: DownloadState, downloadProgress: Float?, modifier: Modifier = Modifier) {
+    if (downloadState == DownloadState.DOWNLOADED) return
     val trackColor = MaterialTheme.colorScheme.outlineVariant
     val progressColor = MaterialTheme.colorScheme.primary
     val progress = when (downloadState) {
-        DownloadState.DOWNLOADED -> 1f
         DownloadState.DOWNLOADING -> (downloadProgress ?: 0f).coerceIn(0f, 1f)
         else -> 0f
     }

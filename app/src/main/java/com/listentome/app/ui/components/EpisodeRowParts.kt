@@ -1,5 +1,6 @@
 package com.listentome.app.ui.components
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,7 +24,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -32,6 +37,8 @@ import coil3.compose.AsyncImage
 import com.listentome.app.data.DownloadState
 import java.text.SimpleDateFormat
 import java.util.Locale
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * Episode artwork with the download-failed/downloading state overlaid on the image, and the
@@ -102,15 +109,56 @@ fun EpisodeArtwork(
     }
 }
 
-/** Ring that traces the episode-actions button to indicate a completed download, without taking extra space. */
+/**
+ * Ring that traces the episode-actions button to show download status: a light gray track
+ * before a download starts, filling in with blue (and a leading dot) as it downloads, ending
+ * as a full blue ring once downloaded.
+ */
 @Composable
-fun DownloadedRing(modifier: Modifier = Modifier) {
-    CircularProgressIndicator(
-        progress = { 1f },
-        modifier = modifier.size(40.dp),
-        strokeWidth = 2.dp,
-        color = LocalContentColor.current
-    )
+fun DownloadStatusRing(downloadState: DownloadState, downloadProgress: Float?, modifier: Modifier = Modifier) {
+    val trackColor = MaterialTheme.colorScheme.outlineVariant
+    val progressColor = MaterialTheme.colorScheme.primary
+    val progress = when (downloadState) {
+        DownloadState.DOWNLOADED -> 1f
+        DownloadState.DOWNLOADING -> (downloadProgress ?: 0f).coerceIn(0f, 1f)
+        else -> 0f
+    }
+    Canvas(modifier = modifier.size(40.dp)) {
+        val strokeWidthPx = 2.dp.toPx()
+        val diameter = size.minDimension - strokeWidthPx
+        val topLeft = Offset(strokeWidthPx / 2f, strokeWidthPx / 2f)
+        val arcSize = Size(diameter, diameter)
+        drawArc(
+            color = trackColor,
+            startAngle = -90f,
+            sweepAngle = 360f,
+            useCenter = false,
+            topLeft = topLeft,
+            size = arcSize,
+            style = Stroke(width = strokeWidthPx, cap = StrokeCap.Round)
+        )
+        if (progress > 0f) {
+            drawArc(
+                color = progressColor,
+                startAngle = -90f,
+                sweepAngle = 360f * progress,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(width = strokeWidthPx, cap = StrokeCap.Round)
+            )
+        }
+        if (downloadState == DownloadState.DOWNLOADING && progress in 0f..1f) {
+            val radius = diameter / 2f
+            val angleRad = Math.toRadians((-90f + 360f * progress).toDouble())
+            val center = Offset(size.width / 2f, size.height / 2f)
+            val dotCenter = Offset(
+                x = center.x + radius * cos(angleRad).toFloat(),
+                y = center.y + radius * sin(angleRad).toFloat()
+            )
+            drawCircle(color = progressColor, radius = strokeWidthPx * 1.5f, center = dotCenter)
+        }
+    }
 }
 
 /**

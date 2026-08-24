@@ -44,8 +44,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.listentome.app.data.DownloadState
-import com.listentome.app.ui.components.DownloadedRing
+import com.listentome.app.ui.components.DownloadStatusRing
 import com.listentome.app.ui.components.EpisodeArtwork
 import com.listentome.app.ui.components.EpisodeInfoColumn
 import kotlin.math.roundToInt
@@ -61,6 +60,7 @@ fun QueueScreen(
 ) {
     val queue by viewModel.queue.collectAsState()
     val playback by viewModel.playback.collectAsState()
+    val downloadProgress by viewModel.downloadProgress.collectAsState()
 
     var items by remember { mutableStateOf(queue) }
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
@@ -108,6 +108,7 @@ fun QueueScreen(
                     val isDragging = index == draggedIndex
                     QueueRow(
                         item = item,
+                        downloadProgress = downloadProgress[item.episode.id],
                         isDragging = isDragging,
                         onPlay = { viewModel.playOrToggle(item, onOpenPlayer = onPlay) },
                         onRemove = { viewModel.removeFromQueue(item.episode) },
@@ -153,6 +154,7 @@ fun QueueScreen(
 @Composable
 private fun QueueRow(
     item: QueueItem,
+    downloadProgress: Float?,
     isDragging: Boolean,
     onPlay: () -> Unit,
     onRemove: () -> Unit,
@@ -178,7 +180,7 @@ private fun QueueRow(
                 imageUrl = item.episode.imageUrl ?: item.feed?.imageUrl,
                 contentDescription = item.episode.title,
                 downloadState = item.episode.downloadState,
-                downloadProgress = null,
+                downloadProgress = downloadProgress,
                 isFinished = item.episode.isFinished,
                 isQueued = item.episode.queuePosition != null
             )
@@ -193,9 +195,7 @@ private fun QueueRow(
             )
             var showMenu by remember { mutableStateOf(false) }
             Box(contentAlignment = Alignment.Center) {
-                if (item.episode.downloadState == DownloadState.DOWNLOADED) {
-                    DownloadedRing()
-                }
+                DownloadStatusRing(downloadState = item.episode.downloadState, downloadProgress = downloadProgress)
                 IconButton(onClick = { showMenu = true }) {
                     Icon(Icons.Default.MoreVert, contentDescription = "Episode actions")
                 }

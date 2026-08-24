@@ -24,6 +24,7 @@ class QueueViewModel(application: Application) : AndroidViewModel(application) {
     private val appSettings = AppSettings.get(application)
 
     val playback: StateFlow<PlaybackUiState> = playbackController.state
+    val downloadProgress: StateFlow<Map<Long, Float>> = repository.downloadProgress
 
     val queue: StateFlow<List<QueueItem>> = combine(
         repository.observeQueue(),

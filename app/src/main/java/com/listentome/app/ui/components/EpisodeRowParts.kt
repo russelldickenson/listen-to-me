@@ -104,7 +104,7 @@ fun EpisodeArtwork(
                         Icons.Default.Download,
                         contentDescription = "Downloaded",
                         tint = textColor,
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(28.dp)
                     )
                 }
                 if (isQueued) {
@@ -112,7 +112,7 @@ fun EpisodeArtwork(
                         Icons.AutoMirrored.Filled.QueueMusic,
                         contentDescription = "In queue",
                         tint = textColor,
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(28.dp)
                     )
                 }
             }

@@ -1,10 +1,8 @@
 package com.listentome.app.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -13,7 +11,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -94,30 +91,26 @@ fun EpisodeArtwork(
                 }
             }
         }
-        if (downloadState == DownloadState.DOWNLOADED || isQueued) {
-            Row(
-                modifier = Modifier.padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                if (downloadState == DownloadState.DOWNLOADED) {
-                    Icon(
-                        Icons.Default.Download,
-                        contentDescription = "Downloaded",
-                        tint = textColor,
-                        modifier = Modifier.size(36.dp)
-                    )
-                }
-                if (isQueued) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.QueueMusic,
-                        contentDescription = "In queue",
-                        tint = textColor,
-                        modifier = Modifier.size(36.dp)
-                    )
-                }
-            }
+        if (isQueued) {
+            Icon(
+                Icons.AutoMirrored.Filled.QueueMusic,
+                contentDescription = "In queue",
+                tint = textColor,
+                modifier = Modifier.padding(top = 4.dp).size(36.dp)
+            )
         }
     }
+}
+
+/** Small filled ring shown under the episode-actions button to indicate a completed download. */
+@Composable
+fun DownloadedIndicator(modifier: Modifier = Modifier) {
+    CircularProgressIndicator(
+        progress = { 1f },
+        modifier = modifier.size(18.dp),
+        strokeWidth = 2.dp,
+        color = LocalContentColor.current
+    )
 }
 
 /**

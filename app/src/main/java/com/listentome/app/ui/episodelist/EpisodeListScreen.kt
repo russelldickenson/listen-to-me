@@ -70,6 +70,7 @@ import coil3.compose.AsyncImage
 import com.listentome.app.data.DownloadState
 import com.listentome.app.data.Episode
 import com.listentome.app.data.Feed
+import com.listentome.app.ui.components.DownloadedIndicator
 import com.listentome.app.ui.components.EpisodeArtwork
 import com.listentome.app.ui.components.EpisodeInfoColumn
 import com.listentome.app.ui.components.HtmlText
@@ -495,8 +496,13 @@ private fun EpisodeRow(
                 isFinished = episode.isFinished,
                 modifier = Modifier.weight(1f).padding(start = 12.dp)
             )
-            IconButton(onClick = onOpenActions) {
-                Icon(Icons.Default.MoreVert, contentDescription = "Episode actions")
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                IconButton(onClick = onOpenActions) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "Episode actions")
+                }
+                if (episode.downloadState == DownloadState.DOWNLOADED) {
+                    DownloadedIndicator()
+                }
             }
         }
     }

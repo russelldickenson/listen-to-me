@@ -102,12 +102,12 @@ fun EpisodeArtwork(
     }
 }
 
-/** Small filled ring shown under the episode-actions button to indicate a completed download. */
+/** Ring that traces the episode-actions button to indicate a completed download, without taking extra space. */
 @Composable
-fun DownloadedIndicator(modifier: Modifier = Modifier) {
+fun DownloadedRing(modifier: Modifier = Modifier) {
     CircularProgressIndicator(
         progress = { 1f },
-        modifier = modifier.size(18.dp),
+        modifier = modifier.size(40.dp),
         strokeWidth = 2.dp,
         color = LocalContentColor.current
     )

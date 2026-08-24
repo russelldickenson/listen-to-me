@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -70,7 +71,7 @@ import coil3.compose.AsyncImage
 import com.listentome.app.data.DownloadState
 import com.listentome.app.data.Episode
 import com.listentome.app.data.Feed
-import com.listentome.app.ui.components.DownloadedIndicator
+import com.listentome.app.ui.components.DownloadedRing
 import com.listentome.app.ui.components.EpisodeArtwork
 import com.listentome.app.ui.components.EpisodeInfoColumn
 import com.listentome.app.ui.components.HtmlText
@@ -496,12 +497,12 @@ private fun EpisodeRow(
                 isFinished = episode.isFinished,
                 modifier = Modifier.weight(1f).padding(start = 12.dp)
             )
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(contentAlignment = Alignment.Center) {
+                if (episode.downloadState == DownloadState.DOWNLOADED) {
+                    DownloadedRing()
+                }
                 IconButton(onClick = onOpenActions) {
                     Icon(Icons.Default.MoreVert, contentDescription = "Episode actions")
-                }
-                if (episode.downloadState == DownloadState.DOWNLOADED) {
-                    DownloadedIndicator()
                 }
             }
         }

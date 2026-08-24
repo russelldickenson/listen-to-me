@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
@@ -129,10 +129,10 @@ fun EpisodeArtwork(
         }
         if (isQueued) {
             Icon(
-                Icons.AutoMirrored.Filled.QueueMusic,
+                Icons.Default.Menu,
                 contentDescription = "In queue",
                 tint = textColor,
-                modifier = Modifier.padding(top = 4.dp).size(36.dp)
+                modifier = Modifier.padding(top = 4.dp).size(28.dp)
             )
         }
     }

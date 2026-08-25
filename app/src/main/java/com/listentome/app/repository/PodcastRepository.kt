@@ -197,8 +197,10 @@ class PodcastRepository private constructor(context: Context) {
         enforceRetention(feedId)
     }
 
-    suspend fun refreshAllFeeds() = withContext(Dispatchers.IO) {
+    /** Refreshes every feed, skipping past any that fail. Returns the titles of feeds that failed to refresh. */
+    suspend fun refreshAllFeeds(): List<String> = withContext(Dispatchers.IO) {
         val feeds = feedDao.observeAll().first()
+        val failed = mutableListOf<String>()
         feeds.forEach { feed ->
             try {
                 refreshFeed(feed.id)
@@ -206,8 +208,10 @@ class PodcastRepository private constructor(context: Context) {
                 throw e
             } catch (e: Exception) {
                 // One feed failing to fetch/parse shouldn't stop the rest from refreshing.
+                failed.add(feed.title)
             }
         }
+        failed
     }
 
     /** Downloads the latest N episodes for a feed (per its keepLatestCount) and prunes older downloads. */

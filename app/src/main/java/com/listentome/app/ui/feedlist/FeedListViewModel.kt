@@ -5,9 +5,12 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.listentome.app.data.Feed
 import com.listentome.app.repository.PodcastRepository
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -24,6 +27,9 @@ class FeedListViewModel(application: Application) : AndroidViewModel(application
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
+    private val _errorMessages = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val errorMessages: SharedFlow<String> = _errorMessages.asSharedFlow()
+
     val hasStaleFeeds: StateFlow<Boolean> = feeds
         .map { list ->
             val now = System.currentTimeMillis()
@@ -37,7 +43,16 @@ class FeedListViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             _isRefreshing.value = true
             try {
-                repository.refreshAllFeeds()
+                val failed = repository.refreshAllFeeds()
+                if (failed.isNotEmpty()) {
+                    _errorMessages.emit(
+                        if (failed.size == 1) {
+                            "Failed to refresh \"${failed[0]}\""
+                        } else {
+                            "Failed to refresh ${failed.size} podcasts"
+                        }
+                    )
+                }
             } finally {
                 _isRefreshing.value = false
             }

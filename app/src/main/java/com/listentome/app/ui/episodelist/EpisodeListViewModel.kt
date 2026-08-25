@@ -10,9 +10,13 @@ import com.listentome.app.playback.PlaybackUiState
 import com.listentome.app.repository.PodcastRepository
 import com.listentome.app.settings.AppSettings
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
@@ -36,6 +40,9 @@ class EpisodeListViewModel(application: Application, private val feedId: Long) :
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    private val _errorMessages = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val errorMessages: SharedFlow<String> = _errorMessages.asSharedFlow()
 
     private val visibleCount = MutableStateFlow(PAGE_SIZE)
 
@@ -66,6 +73,10 @@ class EpisodeListViewModel(application: Application, private val feedId: Long) :
             _isRefreshing.value = true
             try {
                 repository.refreshFeed(feedId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _errorMessages.emit("Failed to refresh \"${feed.value?.title ?: "podcast"}\"")
             } finally {
                 _isRefreshing.value = false
             }

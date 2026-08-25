@@ -32,6 +32,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -72,6 +74,7 @@ fun FeedListScreen(
     val feeds by viewModel.feeds.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val hasStaleFeeds by viewModel.hasStaleFeeds.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var items by remember { mutableStateOf(feeds) }
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
@@ -82,7 +85,14 @@ fun FeedListScreen(
         if (draggedIndex == null) items = feeds
     }
 
+    LaunchedEffect(viewModel) {
+        viewModel.errorMessages.collect { message ->
+            snackbarHostState.showSnackbar(message)
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {

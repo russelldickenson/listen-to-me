@@ -12,6 +12,7 @@ import com.listentome.app.opml.OpmlOutline
 import com.listentome.app.opml.OpmlParser
 import com.listentome.app.opml.OpmlWriter
 import com.listentome.app.settings.AppSettings
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -198,7 +199,15 @@ class PodcastRepository private constructor(context: Context) {
 
     suspend fun refreshAllFeeds() = withContext(Dispatchers.IO) {
         val feeds = feedDao.observeAll().first()
-        feeds.forEach { feed -> refreshFeed(feed.id) }
+        feeds.forEach { feed ->
+            try {
+                refreshFeed(feed.id)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // One feed failing to fetch/parse shouldn't stop the rest from refreshing.
+            }
+        }
     }
 
     /** Downloads the latest N episodes for a feed (per its keepLatestCount) and prunes older downloads. */

@@ -87,6 +87,7 @@ fun EpisodeListScreen(
     val hasMoreEpisodes by viewModel.hasMoreEpisodes.collectAsState()
     val downloadProgress by viewModel.downloadProgress.collectAsState()
     val playback by viewModel.playback.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     var showSettings by remember { mutableStateOf(false) }
     var actionsEpisodeId by remember { mutableStateOf<Long?>(null) }
 
@@ -123,6 +124,9 @@ fun EpisodeListScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = viewModel::refresh, enabled = !isRefreshing) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh episodes")
+                    }
                     IconButton(onClick = { showSettings = true }) {
                         Icon(Icons.Default.Settings, contentDescription = "Feed settings")
                     }

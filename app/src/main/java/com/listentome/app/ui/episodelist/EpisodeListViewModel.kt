@@ -13,6 +13,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
@@ -32,6 +33,9 @@ class EpisodeListViewModel(application: Application, private val feedId: Long) :
     val playback: StateFlow<PlaybackUiState> = playbackController.state
 
     val downloadProgress: StateFlow<Map<Long, Float>> = repository.downloadProgress
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     private val visibleCount = MutableStateFlow(PAGE_SIZE)
 
@@ -58,7 +62,14 @@ class EpisodeListViewModel(application: Application, private val feedId: Long) :
     }
 
     fun refresh() {
-        viewModelScope.launch { repository.refreshFeed(feedId) }
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                repository.refreshFeed(feedId)
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
     }
 
     fun download(episode: Episode) {

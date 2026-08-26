@@ -307,8 +307,15 @@ fun PlayerScreen(
                                 horizontalArrangement = Arrangement.spacedBy(32.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                IconButton(onClick = { viewModel.skip(-skipBackSeconds * 1000L) }, modifier = Modifier.size(48.dp)) {
-                                    Icon(Icons.Default.FastRewind, contentDescription = "Back $skipBackSeconds seconds", modifier = Modifier.size(32.dp))
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    IconButton(onClick = { viewModel.skip(-skipBackSeconds * 1000L) }, modifier = Modifier.size(48.dp)) {
+                                        Icon(Icons.Default.FastRewind, contentDescription = "Back $skipBackSeconds seconds", modifier = Modifier.size(32.dp))
+                                    }
+                                    Text(
+                                        "${skipBackSeconds}s",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color.White.copy(alpha = 0.6f)
+                                    )
                                 }
                                 FilledIconButton(
                                     onClick = viewModel::togglePlayPause,
@@ -332,8 +339,15 @@ fun PlayerScreen(
                                         )
                                     }
                                 }
-                                IconButton(onClick = { viewModel.skip(skipForwardSeconds * 1000L) }, modifier = Modifier.size(48.dp)) {
-                                    Icon(Icons.Default.FastForward, contentDescription = "Forward $skipForwardSeconds seconds", modifier = Modifier.size(32.dp))
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    IconButton(onClick = { viewModel.skip(skipForwardSeconds * 1000L) }, modifier = Modifier.size(48.dp)) {
+                                        Icon(Icons.Default.FastForward, contentDescription = "Forward $skipForwardSeconds seconds", modifier = Modifier.size(32.dp))
+                                    }
+                                    Text(
+                                        "${skipForwardSeconds}s",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color.White.copy(alpha = 0.6f)
+                                    )
                                 }
                             }
 

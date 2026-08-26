@@ -290,12 +290,12 @@ fun PlayerScreen(
                             Row(modifier = Modifier.fillMaxWidth()) {
                                 Text(
                                     formatMillis(playback.positionMs),
-                                    style = MaterialTheme.typography.labelSmall,
+                                    style = MaterialTheme.typography.labelMedium,
                                     color = Color.White.copy(alpha = 0.6f)
                                 )
                                 Text(
                                     formatMillis(playback.durationMs),
-                                    style = MaterialTheme.typography.labelSmall,
+                                    style = MaterialTheme.typography.labelMedium,
                                     color = Color.White.copy(alpha = 0.6f),
                                     modifier = Modifier.weight(1f),
                                     textAlign = TextAlign.End
@@ -313,7 +313,7 @@ fun PlayerScreen(
                                     }
                                     Text(
                                         "${skipBackSeconds}s",
-                                        style = MaterialTheme.typography.labelSmall,
+                                        style = MaterialTheme.typography.labelMedium,
                                         color = Color.White.copy(alpha = 0.6f)
                                     )
                                 }
@@ -345,7 +345,7 @@ fun PlayerScreen(
                                     }
                                     Text(
                                         "${skipForwardSeconds}s",
-                                        style = MaterialTheme.typography.labelSmall,
+                                        style = MaterialTheme.typography.labelMedium,
                                         color = Color.White.copy(alpha = 0.6f)
                                     )
                                 }

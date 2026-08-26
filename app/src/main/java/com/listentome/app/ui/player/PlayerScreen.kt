@@ -1,6 +1,11 @@
 package com.listentome.app.ui.player
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,9 +14,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Pause
@@ -27,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -42,11 +51,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.palette.graphics.Palette
 import coil3.BitmapImage
 import coil3.SingletonImageLoader
@@ -54,6 +66,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
+import com.listentome.app.ui.components.HtmlText
 
 private val PlayerBackgroundBase = Color(0xFF1B1B1D)
 
@@ -72,6 +85,7 @@ fun PlayerScreen(
     val context = LocalContext.current
     val artworkUrl = episode?.imageUrl ?: feed?.imageUrl
     var artworkTint by remember { mutableStateOf<Color?>(null) }
+    var showDescription by remember { mutableStateOf(false) }
 
     LaunchedEffect(artworkUrl) {
         artworkTint = null
@@ -89,16 +103,43 @@ fun PlayerScreen(
         }
     }
 
+    LaunchedEffect(episode?.id) {
+        showDescription = false
+    }
+
+    BackHandler(enabled = showDescription) {
+        showDescription = false
+    }
+
+    val flipRotation by animateFloatAsState(
+        targetValue = if (showDescription) 180f else 0f,
+        animationSpec = tween(durationMillis = 450, easing = FastOutSlowInEasing),
+        label = "PlayerNotes3DFlip"
+    )
+
     val backgroundColor = artworkTint?.let { lerp(PlayerBackgroundBase, it, 0.05f) } ?: PlayerBackgroundBase
 
     CompositionLocalProvider(LocalContentColor provides Color.White) {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = {},
+                    title = {
+                        if (showDescription) {
+                            Text("Episode notes", style = MaterialTheme.typography.titleMedium)
+                        }
+                    },
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        IconButton(onClick = {
+                            if (showDescription) {
+                                showDescription = false
+                            } else {
+                                onBack()
+                            }
+                        }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = if (showDescription) "Back to player" else "Back"
+                            )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -116,104 +157,189 @@ fun PlayerScreen(
                     Text("Nothing is playing yet.")
                 }
             } else {
-                Column(
-                    modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    AsyncImage(
-                        model = artworkUrl,
-                        contentDescription = currentEpisode.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
-                            .clip(RoundedCornerShape(24.dp))
-                    )
-
-                    Text(
-                        currentEpisode.title,
-                        style = MaterialTheme.typography.titleLarge,
-                        textAlign = TextAlign.Center,
-                        maxLines = 2,
-                        modifier = Modifier.padding(top = 32.dp)
-                    )
-                    feed?.title?.let {
-                        Text(
-                            it,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.7f),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    Slider(
-                        value = playback.positionMs.toFloat().coerceAtMost(playback.durationMs.toFloat().coerceAtLeast(1f)),
-                        valueRange = 0f..playback.durationMs.toFloat().coerceAtLeast(1f),
-                        onValueChange = { viewModel.seekTo(it.toLong()) },
-                        colors = SliderDefaults.colors(
-                            thumbColor = Color.White,
-                            activeTrackColor = Color.White,
-                            inactiveTrackColor = Color.White.copy(alpha = 0.25f)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            formatMillis(playback.positionMs),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.6f)
-                        )
-                        Text(
-                            formatMillis(playback.durationMs),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.6f),
-                            modifier = Modifier.weight(1f),
-                            textAlign = TextAlign.End
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.padding(vertical = 32.dp),
-                        horizontalArrangement = Arrangement.spacedBy(32.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = { viewModel.skip(-skipBackSeconds * 1000L) }, modifier = Modifier.size(48.dp)) {
-                            Icon(Icons.Default.FastRewind, contentDescription = "Back $skipBackSeconds seconds", modifier = Modifier.size(32.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .graphicsLayer {
+                            rotationY = flipRotation
+                            cameraDistance = 14f * density
                         }
-                        FilledIconButton(
-                            onClick = viewModel::togglePlayPause,
-                            modifier = Modifier.size(80.dp),
-                            colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
+                ) {
+                    if (flipRotation > 90f) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 24.dp)
+                                .graphicsLayer {
+                                    rotationY = 180f
+                                }
                         ) {
-                            if (playback.isBuffering) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(32.dp),
-                                    strokeWidth = 3.dp,
-                                    color = MaterialTheme.colorScheme.onPrimary
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp)
+                            ) {
+                                Text(
+                                    text = currentEpisode.title,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
                                 )
-                            } else {
-                                Icon(
-                                    imageVector = if (playback.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                    contentDescription = if (playback.isPlaying) "Pause" else "Play",
-                                    modifier = Modifier.size(40.dp)
+                                feed?.title?.let {
+                                    Text(
+                                        text = it,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.White.copy(alpha = 0.7f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    )
+                                }
+                            }
+
+                            val description = currentEpisode.description.ifBlank { feed?.description.orEmpty() }
+                            HtmlText(
+                                html = description.ifBlank { "No description available." },
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    color = Color.White.copy(alpha = 0.9f),
+                                    lineHeight = 22.sp
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(bottom = 16.dp)
+                            )
+                        }
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            AsyncImage(
+                                model = artworkUrl,
+                                contentDescription = currentEpisode.title,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(1f)
+                                    .clip(RoundedCornerShape(24.dp))
+                            )
+
+                            Text(
+                                currentEpisode.title,
+                                style = MaterialTheme.typography.titleLarge,
+                                textAlign = TextAlign.Center,
+                                maxLines = 2,
+                                modifier = Modifier.padding(top = 32.dp)
+                            )
+                            feed?.title?.let {
+                                Text(
+                                    it,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(top = 4.dp)
                                 )
                             }
-                        }
-                        IconButton(onClick = { viewModel.skip(skipForwardSeconds * 1000L) }, modifier = Modifier.size(48.dp)) {
-                            Icon(Icons.Default.FastForward, contentDescription = "Forward $skipForwardSeconds seconds", modifier = Modifier.size(32.dp))
+
+                            Surface(
+                                onClick = { showDescription = true },
+                                shape = RoundedCornerShape(16.dp),
+                                color = Color.White.copy(alpha = 0.12f),
+                                contentColor = Color.White,
+                                modifier = Modifier.padding(top = 16.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                                ) {
+                                    Text(
+                                        "Episode notes",
+                                        style = MaterialTheme.typography.labelLarge
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.ChevronRight,
+                                        contentDescription = "View episode notes",
+                                        modifier = Modifier
+                                            .padding(start = 4.dp)
+                                            .size(18.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            Slider(
+                                value = playback.positionMs.toFloat().coerceAtMost(playback.durationMs.toFloat().coerceAtLeast(1f)),
+                                valueRange = 0f..playback.durationMs.toFloat().coerceAtLeast(1f),
+                                onValueChange = { viewModel.seekTo(it.toLong()) },
+                                colors = SliderDefaults.colors(
+                                    thumbColor = Color.White,
+                                    activeTrackColor = Color.White,
+                                    inactiveTrackColor = Color.White.copy(alpha = 0.25f)
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                Text(
+                                    formatMillis(playback.positionMs),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White.copy(alpha = 0.6f)
+                                )
+                                Text(
+                                    formatMillis(playback.durationMs),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White.copy(alpha = 0.6f),
+                                    modifier = Modifier.weight(1f),
+                                    textAlign = TextAlign.End
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.padding(vertical = 32.dp),
+                                horizontalArrangement = Arrangement.spacedBy(32.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(onClick = { viewModel.skip(-skipBackSeconds * 1000L) }, modifier = Modifier.size(48.dp)) {
+                                    Icon(Icons.Default.FastRewind, contentDescription = "Back $skipBackSeconds seconds", modifier = Modifier.size(32.dp))
+                                }
+                                FilledIconButton(
+                                    onClick = viewModel::togglePlayPause,
+                                    modifier = Modifier.size(80.dp),
+                                    colors = IconButtonDefaults.filledIconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                ) {
+                                    if (playback.isBuffering) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(32.dp),
+                                            strokeWidth = 3.dp,
+                                            color = MaterialTheme.colorScheme.onPrimary
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = if (playback.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                            contentDescription = if (playback.isPlaying) "Pause" else "Play",
+                                            modifier = Modifier.size(40.dp)
+                                        )
+                                    }
+                                }
+                                IconButton(onClick = { viewModel.skip(skipForwardSeconds * 1000L) }, modifier = Modifier.size(48.dp)) {
+                                    Icon(Icons.Default.FastForward, contentDescription = "Forward $skipForwardSeconds seconds", modifier = Modifier.size(32.dp))
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.weight(1f))
                         }
                     }
-
-                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
         }

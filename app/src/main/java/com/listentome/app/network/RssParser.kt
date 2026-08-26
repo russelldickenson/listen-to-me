@@ -39,10 +39,10 @@ object RssParser {
                             items += parseItem(parser)
                         }
                         "image" -> if (inChannelOnly && parser.namespace != ITUNES_NS) inImage = true
-                        "title" -> if (inChannelOnly && !inImage) feedTitle = readText(parser)
-                        "description" -> if (inChannelOnly) feedDescription = readText(parser)
+                        "title" -> if (inChannelOnly && !inImage) feedTitle = readElementText(parser)
+                        "description" -> if (inChannelOnly) feedDescription = readElementText(parser)
                         "url" -> if (inChannelOnly && inImage && feedImageUrl == null) {
-                            feedImageUrl = readText(parser)
+                            feedImageUrl = readElementText(parser)
                         }
                     }
                 } else if (eventType == XmlPullParser.END_TAG && parser.name == "image") {
@@ -71,6 +71,8 @@ object RssParser {
     private fun parseItem(parser: XmlPullParser): ParsedItem {
         var title = ""
         var description = ""
+        var contentEncoded = ""
+        var itunesSummary = ""
         var audioUrl: String? = null
         var guid: String? = null
         var pubDate: Long = 0
@@ -86,13 +88,17 @@ object RssParser {
                     if (href != null) imageUrl = href
                 }
                 when (parser.name) {
-                    "title" -> title = readText(parser)
-                    "description" -> description = readText(parser)
-                    "guid" -> guid = readText(parser)
-                    "pubDate" -> pubDate = parseRfc822Date(readText(parser))
+                    "title" -> title = readElementText(parser)
+                    "description" -> description = readElementText(parser)
+                    "encoded" -> contentEncoded = readElementText(parser)
+                    "summary" -> if (parser.namespace == ITUNES_NS || itunesSummary.isEmpty()) {
+                        itunesSummary = readElementText(parser)
+                    }
+                    "guid" -> guid = readElementText(parser)
+                    "pubDate" -> pubDate = parseRfc822Date(readElementText(parser))
                     "enclosure" -> audioUrl = parser.getAttributeValue(null, "url")
                     "duration" -> if (parser.namespace == ITUNES_NS) {
-                        durationSeconds = parseItunesDuration(readText(parser))
+                        durationSeconds = parseItunesDuration(readElementText(parser))
                     }
                 }
             }
@@ -100,10 +106,11 @@ object RssParser {
         }
 
         val resolvedAudioUrl = audioUrl ?: ""
+        val resolvedDescription = contentEncoded.ifBlank { description.ifBlank { itunesSummary } }
         return ParsedItem(
             guid = guid ?: resolvedAudioUrl.ifBlank { title },
             title = title.ifBlank { "Untitled Episode" },
-            description = description,
+            description = resolvedDescription,
             audioUrl = resolvedAudioUrl,
             publishedAt = pubDate,
             durationSeconds = durationSeconds,
@@ -111,12 +118,33 @@ object RssParser {
         )
     }
 
-    private fun readText(parser: XmlPullParser): String {
-        return if (parser.next() == XmlPullParser.TEXT) {
-            parser.text.trim()
-        } else {
-            ""
+    private fun readElementText(parser: XmlPullParser): String {
+        val result = StringBuilder()
+        val targetDepth = parser.depth
+        while (true) {
+            val token = parser.next()
+            if (token == XmlPullParser.END_DOCUMENT) break
+            if (token == XmlPullParser.END_TAG && parser.depth == targetDepth) break
+            when (token) {
+                XmlPullParser.TEXT, XmlPullParser.CDSECT -> result.append(parser.text)
+                XmlPullParser.ENTITY_REF -> result.append(parser.text)
+                XmlPullParser.START_TAG -> {
+                    result.append("<").append(parser.name)
+                    for (i in 0 until parser.attributeCount) {
+                        result.append(" ")
+                            .append(parser.getAttributeName(i))
+                            .append("=\"")
+                            .append(parser.getAttributeValue(i))
+                            .append("\"")
+                    }
+                    result.append(">")
+                }
+                XmlPullParser.END_TAG -> {
+                    result.append("</").append(parser.name).append(">")
+                }
+            }
         }
+        return result.toString().trim()
     }
 
     private fun parseItunesDuration(raw: String): Long? {

@@ -4,9 +4,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
@@ -19,6 +21,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.zIndex
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -75,8 +78,6 @@ import com.listentome.app.ui.components.EpisodeArtwork
 import com.listentome.app.ui.components.EpisodeInfoColumn
 import kotlin.math.roundToInt
 
-private val EpisodeRowHeight = 104.dp
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EpisodeListScreen(
@@ -97,7 +98,6 @@ fun EpisodeListScreen(
     var items by remember { mutableStateOf(episodes) }
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
     var dragOffsetY by remember { mutableStateOf(0f) }
-    val itemHeightPx = with(LocalDensity.current) { EpisodeRowHeight.toPx() }
 
     LaunchedEffect(episodes) {
         if (draggedIndex == null) items = episodes
@@ -144,69 +144,92 @@ fun EpisodeListScreen(
             )
         }
     ) { padding ->
-        if (items.isEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(padding).padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text("No episodes yet. Pull to refresh once you're ready.")
-            }
-        } else {
-            LazyColumn(contentPadding = PaddingValues(16.dp), modifier = Modifier.padding(padding)) {
-                itemsIndexed(items, key = { _, episode -> episode.id }) { index, episode ->
-                    val isDragging = index == draggedIndex
-                    val isCurrentEpisode = playback.currentEpisodeId == episode.id
-                    EpisodeRow(
-                        episode = episode,
-                        fallbackArtworkUrl = feed?.imageUrl,
-                        downloadProgress = downloadProgress[episode.id],
-                        isCurrentEpisode = isCurrentEpisode,
-                        isPlaying = isCurrentEpisode && playback.isPlaying,
-                        isBuffering = isCurrentEpisode && playback.isBuffering,
-                        isDragging = isDragging,
-                        onPlayPauseClick = { viewModel.openEpisode(episode, onOpenPlayer = onPlay) },
-                        onOpenActions = { actionsEpisodeId = episode.id },
-                        modifier = Modifier
-                            .zIndex(if (isDragging) 1f else 0f)
-                            .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
-                            .pointerInput(episode.id) {
-                                detectDragGesturesAfterLongPress(
-                                    onDragStart = {
-                                        draggedIndex = items.indexOfFirst { it.id == episode.id }
-                                        dragOffsetY = 0f
-                                    },
-                                    onDragEnd = {
-                                        draggedIndex = null
-                                        dragOffsetY = 0f
-                                        viewModel.reorderEpisodes(items.map { it.id })
-                                    },
-                                    onDragCancel = {
-                                        draggedIndex = null
-                                        dragOffsetY = 0f
-                                    },
-                                    onDrag = { change, dragAmount ->
-                                        change.consume()
-                                        dragOffsetY += dragAmount.y
-                                        val from = draggedIndex ?: return@detectDragGesturesAfterLongPress
-                                        val to = (from + (dragOffsetY / itemHeightPx).roundToInt())
-                                            .coerceIn(0, items.lastIndex)
-                                        if (to != from) {
-                                            items = items.toMutableList().apply { add(to, removeAt(from)) }
-                                            dragOffsetY -= (to - from) * itemHeightPx
-                                            draggedIndex = to
-                                        }
-                                    }
-                                )
-                            }
-                    )
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            val verticalPadding = 32.dp
+            val spacing = 12.dp
+            val targetCardHeight = 104.dp
+            val targetSlotHeight = targetCardHeight + spacing
+
+            val availableHeight = (maxHeight - verticalPadding).coerceAtLeast(targetCardHeight)
+            val visibleCardCount = ((availableHeight + spacing) / targetSlotHeight).toInt().coerceAtLeast(1)
+            val itemSlotHeight = (availableHeight + spacing) / visibleCardCount
+            val dynamicCardHeight = itemSlotHeight - spacing
+            val itemHeightPx = with(LocalDensity.current) { itemSlotHeight.toPx() }
+
+            if (items.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("No episodes yet. Pull to refresh once you're ready.")
                 }
-                if (hasMoreEpisodes) {
-                    item {
-                        TextButton(
-                            onClick = viewModel::loadMoreEpisodes,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("More episodes…")
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(16.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    itemsIndexed(items, key = { _, episode -> episode.id }) { index, episode ->
+                        val isDragging = index == draggedIndex
+                        val isCurrentEpisode = playback.currentEpisodeId == episode.id
+                        EpisodeRow(
+                            episode = episode,
+                            cardHeight = dynamicCardHeight,
+                            fallbackArtworkUrl = feed?.imageUrl,
+                            downloadProgress = downloadProgress[episode.id],
+                            isCurrentEpisode = isCurrentEpisode,
+                            isPlaying = isCurrentEpisode && playback.isPlaying,
+                            isBuffering = isCurrentEpisode && playback.isBuffering,
+                            isDragging = isDragging,
+                            onPlayPauseClick = { viewModel.openEpisode(episode, onOpenPlayer = onPlay) },
+                            onOpenActions = { actionsEpisodeId = episode.id },
+                            modifier = Modifier
+                                .zIndex(if (isDragging) 1f else 0f)
+                                .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
+                                .pointerInput(episode.id) {
+                                    detectDragGesturesAfterLongPress(
+                                        onDragStart = {
+                                            draggedIndex = items.indexOfFirst { it.id == episode.id }
+                                            dragOffsetY = 0f
+                                        },
+                                        onDragEnd = {
+                                            draggedIndex = null
+                                            dragOffsetY = 0f
+                                            viewModel.reorderEpisodes(items.map { it.id })
+                                        },
+                                        onDragCancel = {
+                                            draggedIndex = null
+                                            dragOffsetY = 0f
+                                        },
+                                        onDrag = { change, dragAmount ->
+                                            change.consume()
+                                            dragOffsetY += dragAmount.y
+                                            val from = draggedIndex ?: return@detectDragGesturesAfterLongPress
+                                            val to = (from + (dragOffsetY / itemHeightPx).roundToInt())
+                                                .coerceIn(0, items.lastIndex)
+                                            if (to != from) {
+                                                items = items.toMutableList().apply { add(to, removeAt(from)) }
+                                                dragOffsetY -= (to - from) * itemHeightPx
+                                                draggedIndex = to
+                                            }
+                                        }
+                                    )
+                                }
+                        )
+                    }
+                    if (hasMoreEpisodes) {
+                        item {
+                            TextButton(
+                                onClick = viewModel::loadMoreEpisodes,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("More episodes…")
+                            }
                         }
                     }
                 }
@@ -428,6 +451,7 @@ private fun FeedSettingsDialog(
 @Composable
 private fun EpisodeRow(
     episode: Episode,
+    cardHeight: Dp,
     fallbackArtworkUrl: String?,
     downloadProgress: Float?,
     isCurrentEpisode: Boolean,
@@ -441,7 +465,7 @@ private fun EpisodeRow(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(EpisodeRowHeight)
+            .height(cardHeight)
             .padding(bottom = 12.dp)
             .clickable(onClick = onPlayPauseClick),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 1.dp),

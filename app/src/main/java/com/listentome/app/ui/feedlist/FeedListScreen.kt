@@ -73,6 +73,7 @@ fun FeedListScreen(
 ) {
     val feeds by viewModel.feeds.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val refreshProgress by viewModel.refreshProgress.collectAsState()
     val hasStaleFeeds by viewModel.hasStaleFeeds.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -117,8 +118,17 @@ fun FeedListScreen(
                     IconButton(onClick = onOpenQueue) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "Queue")
                     }
-                    IconButton(onClick = viewModel::refreshAll, enabled = !isRefreshing) {
-                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh all feeds")
+                    if (refreshProgress != null) {
+                        val (completed, total) = refreshProgress!!
+                        Text(
+                            "$completed/$total",
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    } else {
+                        IconButton(onClick = viewModel::refreshAll, enabled = !isRefreshing) {
+                            Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh all feeds")
+                        }
                     }
                     IconButton(onClick = onOpenSettings) {
                         Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings")
@@ -134,7 +144,7 @@ fun FeedListScreen(
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             if (hasStaleFeeds) {
-                StaleDataBanner(isRefreshing = isRefreshing, onRefresh = viewModel::refreshAll)
+                StaleDataBanner(isRefreshing = isRefreshing, refreshProgress = refreshProgress, onRefresh = viewModel::refreshAll)
             }
             if (items.isEmpty()) {
                 EmptyState(onAddFeed = onAddFeed)
@@ -187,7 +197,7 @@ fun FeedListScreen(
 }
 
 @Composable
-private fun StaleDataBanner(isRefreshing: Boolean, onRefresh: () -> Unit) {
+private fun StaleDataBanner(isRefreshing: Boolean, refreshProgress: Pair<Int, Int>?, onRefresh: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -195,7 +205,11 @@ private fun StaleDataBanner(isRefreshing: Boolean, onRefresh: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = if (isRefreshing) "Refreshing…" else "Episodes might be out of date (refreshed > 24 hours ago)",
+                text = when {
+                    isRefreshing && refreshProgress != null -> "Refreshing ${refreshProgress.first}/${refreshProgress.second}…"
+                    isRefreshing -> "Refreshing…"
+                    else -> "Episodes might be out of date (refreshed > 24 hours ago)"
+                },
                 modifier = Modifier.weight(1f)
             )
             Button(onClick = onRefresh, enabled = !isRefreshing) {

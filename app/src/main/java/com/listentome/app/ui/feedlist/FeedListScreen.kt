@@ -119,17 +119,8 @@ fun FeedListScreen(
                     IconButton(onClick = onOpenQueue, enabled = hasEpisodes) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "Queue")
                     }
-                    if (refreshProgress != null) {
-                        val (completed, total) = refreshProgress!!
-                        Text(
-                            "$completed/$total",
-                            style = MaterialTheme.typography.labelLarge,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                    } else {
-                        IconButton(onClick = viewModel::refreshAll, enabled = !isRefreshing && hasEpisodes) {
-                            Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh all feeds")
-                        }
+                    IconButton(onClick = viewModel::refreshAll, enabled = !isRefreshing && refreshProgress == null && hasEpisodes) {
+                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh all feeds")
                     }
                     IconButton(onClick = onOpenSettings) {
                         Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings")

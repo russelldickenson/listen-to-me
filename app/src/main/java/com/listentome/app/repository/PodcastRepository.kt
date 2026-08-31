@@ -67,6 +67,8 @@ class PodcastRepository private constructor(context: Context) {
 
     fun observeEpisodeCount(feedId: Long): Flow<Int> = episodeDao.observeCountByFeed(feedId)
 
+    fun observeTotalEpisodeCount(): Flow<Int> = episodeDao.observeTotalEpisodeCount()
+
     fun observeEpisode(episodeId: Long): Flow<Episode?> = episodeDao.observeById(episodeId)
 
     fun observeQueue(): Flow<List<Episode>> = episodeDao.observeQueue()

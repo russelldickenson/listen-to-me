@@ -26,6 +26,9 @@ interface EpisodeDao {
     @Query("SELECT COUNT(*) FROM episodes WHERE feedId = :feedId")
     fun observeCountByFeed(feedId: Long): Flow<Int>
 
+    @Query("SELECT COUNT(*) FROM episodes")
+    fun observeTotalEpisodeCount(): Flow<Int>
+
     @Query("SELECT * FROM episodes WHERE id = :episodeId")
     fun observeById(episodeId: Long): Flow<Episode?>
 

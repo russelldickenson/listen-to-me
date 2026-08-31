@@ -75,6 +75,7 @@ fun FeedListScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val refreshProgress by viewModel.refreshProgress.collectAsState()
     val hasStaleFeeds by viewModel.hasStaleFeeds.collectAsState()
+    val hasEpisodes by viewModel.hasEpisodes.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     var items by remember { mutableStateOf(feeds) }
@@ -115,7 +116,7 @@ fun FeedListScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onOpenQueue) {
+                    IconButton(onClick = onOpenQueue, enabled = hasEpisodes) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "Queue")
                     }
                     if (refreshProgress != null) {
@@ -126,7 +127,7 @@ fun FeedListScreen(
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
                     } else {
-                        IconButton(onClick = viewModel::refreshAll, enabled = !isRefreshing) {
+                        IconButton(onClick = viewModel::refreshAll, enabled = !isRefreshing && hasEpisodes) {
                             Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh all feeds")
                         }
                     }
@@ -143,8 +144,13 @@ fun FeedListScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (hasStaleFeeds) {
-                StaleDataBanner(isRefreshing = isRefreshing, refreshProgress = refreshProgress, onRefresh = viewModel::refreshAll)
+            if (hasStaleFeeds || isRefreshing || refreshProgress != null) {
+                StaleDataBanner(
+                    isRefreshing = isRefreshing,
+                    refreshProgress = refreshProgress,
+                    hasEpisodes = hasEpisodes,
+                    onRefresh = viewModel::refreshAll
+                )
             }
             if (items.isEmpty()) {
                 EmptyState(onAddFeed = onAddFeed)
@@ -197,23 +203,41 @@ fun FeedListScreen(
 }
 
 @Composable
-private fun StaleDataBanner(isRefreshing: Boolean, refreshProgress: Pair<Int, Int>?, onRefresh: () -> Unit) {
+private fun StaleDataBanner(
+    isRefreshing: Boolean,
+    refreshProgress: Pair<Int, Int>?,
+    hasEpisodes: Boolean,
+    onRefresh: () -> Unit
+) {
     Card(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = when {
-                    isRefreshing && refreshProgress != null -> "Refreshing ${refreshProgress.first}/${refreshProgress.second}…"
-                    isRefreshing -> "Refreshing…"
-                    else -> "Episodes might be out of date (refreshed > 24 hours ago)"
-                },
-                modifier = Modifier.weight(1f)
-            )
-            Button(onClick = onRefresh, enabled = !isRefreshing) {
-                Text("Refresh")
+            if (isRefreshing || refreshProgress != null) {
+                Text(
+                    text = "Refreshing...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                if (refreshProgress != null) {
+                    val (completed, total) = refreshProgress
+                    Text(
+                        text = "$completed/$total",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                Text(
+                    text = "Episodes might be out of date (refreshed > 24 hours ago)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f).padding(end = 8.dp)
+                )
+                Button(onClick = onRefresh, enabled = !isRefreshing && hasEpisodes) {
+                    Text("Refresh")
+                }
             }
         }
     }

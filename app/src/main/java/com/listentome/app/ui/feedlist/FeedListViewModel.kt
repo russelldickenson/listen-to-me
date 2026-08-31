@@ -44,12 +44,20 @@ class FeedListViewModel(application: Application) : AndroidViewModel(application
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val hasEpisodes: StateFlow<Boolean> = repository.observeTotalEpisodeCount()
+        .map { it > 0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     fun refreshAll() {
+        val total = feeds.value.size
         viewModelScope.launch {
             _isRefreshing.value = true
+            if (total > 0) {
+                _refreshProgress.value = 0 to total
+            }
             try {
-                val failed = repository.refreshAllFeeds { completed, total ->
-                    _refreshProgress.value = completed to total
+                val failed = repository.refreshAllFeeds { completed, count ->
+                    _refreshProgress.value = completed to count
                 }
                 if (failed.isNotEmpty()) {
                     _errorMessages.emit(

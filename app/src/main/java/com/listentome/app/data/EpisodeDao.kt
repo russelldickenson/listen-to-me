@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
@@ -57,6 +58,19 @@ interface EpisodeDao {
 
     @Query("UPDATE episodes SET queuePosition = :position WHERE id = :episodeId")
     suspend fun setQueuePosition(episodeId: Long, position: Long?)
+
+    @Query("UPDATE episodes SET queuePosition = queuePosition + 1 WHERE queuePosition IS NOT NULL")
+    suspend fun shiftQueuePositionsDown()
+
+    @Query("UPDATE episodes SET queuePosition = NULL WHERE id = :episodeId")
+    suspend fun clearQueuePosition(episodeId: Long)
+
+    @Transaction
+    suspend fun addToQueueAtTop(episodeId: Long) {
+        clearQueuePosition(episodeId)
+        shiftQueuePositionsDown()
+        setQueuePosition(episodeId, 1L)
+    }
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(episode: Episode): Long

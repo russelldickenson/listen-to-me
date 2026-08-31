@@ -2,6 +2,7 @@ package com.listentome.app.ui.queue
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import kotlinx.coroutines.delay
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -49,7 +52,7 @@ import com.listentome.app.ui.components.EpisodeArtwork
 import com.listentome.app.ui.components.EpisodeInfoColumn
 import kotlin.math.roundToInt
 
-private val QueueRowHeight = 108.dp
+private val QueueRowHeight = 124.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,6 +65,7 @@ fun QueueScreen(
     val playback by viewModel.playback.collectAsState()
     val downloadProgress by viewModel.downloadProgress.collectAsState()
 
+    val listState = rememberLazyListState()
     var items by remember { mutableStateOf(queue) }
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
     var dragOffsetY by remember { mutableStateOf(0f) }
@@ -69,6 +73,52 @@ fun QueueScreen(
 
     LaunchedEffect(queue) {
         if (draggedIndex == null) items = queue
+    }
+
+    LaunchedEffect(draggedIndex) {
+        if (draggedIndex == null) return@LaunchedEffect
+        val scrollThresholdPx = itemHeightPx * 0.75f
+        val maxScrollSpeedPx = itemHeightPx * 0.15f
+        while (true) {
+            val currentDragged = draggedIndex ?: break
+            val layoutInfo = listState.layoutInfo
+            val visibleItem = layoutInfo.visibleItemsInfo.firstOrNull { it.index == currentDragged }
+            if (visibleItem != null) {
+                val visualTop = visibleItem.offset + dragOffsetY
+                val visualBottom = visualTop + visibleItem.size
+                val viewportStart = layoutInfo.viewportStartOffset.toFloat()
+                val viewportEnd = layoutInfo.viewportEndOffset.toFloat()
+
+                var scrollDelta = 0f
+                if (visualTop < viewportStart + scrollThresholdPx && listState.canScrollBackward) {
+                    val factor = ((viewportStart + scrollThresholdPx - visualTop) / scrollThresholdPx).coerceIn(0f, 2f)
+                    scrollDelta = -maxScrollSpeedPx * factor
+                } else if (visualBottom > viewportEnd - scrollThresholdPx && listState.canScrollForward) {
+                    val factor = ((visualBottom - (viewportEnd - scrollThresholdPx)) / scrollThresholdPx).coerceIn(0f, 2f)
+                    scrollDelta = maxScrollSpeedPx * factor
+                }
+
+                if (scrollDelta != 0f) {
+                    val consumed = listState.scrollBy(scrollDelta)
+                    if (consumed != 0f) {
+                        dragOffsetY -= consumed
+                        val from = draggedIndex ?: break
+                        val to = (from + (dragOffsetY / itemHeightPx).roundToInt()).coerceIn(0, items.lastIndex)
+                        if (to != from) {
+                            items = items.toMutableList().apply { add(to, removeAt(from)) }
+                            dragOffsetY -= (to - from) * itemHeightPx
+                            draggedIndex = to
+                        }
+                        if (draggedIndex == 0 && !listState.canScrollBackward) {
+                            dragOffsetY = dragOffsetY.coerceAtLeast(0f)
+                        } else if (draggedIndex == items.lastIndex && !listState.canScrollForward) {
+                            dragOffsetY = dragOffsetY.coerceAtMost(0f)
+                        }
+                    }
+                }
+            }
+            delay(16)
+        }
     }
 
     Scaffold(
@@ -103,7 +153,11 @@ fun QueueScreen(
                 Text("Your queue is empty. Long-press an episode and choose \"Add to queue\".")
             }
         } else {
-            LazyColumn(contentPadding = PaddingValues(16.dp), modifier = Modifier.padding(padding)) {
+            LazyColumn(
+                state = listState,
+                contentPadding = PaddingValues(16.dp),
+                modifier = Modifier.padding(padding)
+            ) {
                 itemsIndexed(items, key = { _, item -> item.episode.id }) { index, item ->
                     val isDragging = index == draggedIndex
                     val isCurrentEpisode = playback.currentEpisodeId == item.episode.id
@@ -118,7 +172,13 @@ fun QueueScreen(
                         onRemove = { viewModel.removeFromQueue(item.episode) },
                         modifier = Modifier
                             .zIndex(if (isDragging) 1f else 0f)
-                            .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
+                            .graphicsLayer {
+                                translationY = if (isDragging) {
+                                    if (index == 0 && !listState.canScrollBackward) dragOffsetY.coerceAtLeast(0f)
+                                    else if (index == items.lastIndex && !listState.canScrollForward) dragOffsetY.coerceAtMost(0f)
+                                    else dragOffsetY
+                                } else 0f
+                            }
                             .pointerInput(item.episode.id) {
                                 detectDragGesturesAfterLongPress(
                                     onDragStart = {
@@ -133,6 +193,7 @@ fun QueueScreen(
                                     onDragCancel = {
                                         draggedIndex = null
                                         dragOffsetY = 0f
+                                        items = queue
                                     },
                                     onDrag = { change, dragAmount ->
                                         change.consume()
@@ -144,6 +205,11 @@ fun QueueScreen(
                                             items = items.toMutableList().apply { add(to, removeAt(from)) }
                                             dragOffsetY -= (to - from) * itemHeightPx
                                             draggedIndex = to
+                                        }
+                                        if (draggedIndex == 0 && !listState.canScrollBackward) {
+                                            dragOffsetY = dragOffsetY.coerceAtLeast(0f)
+                                        } else if (draggedIndex == items.lastIndex && !listState.canScrollForward) {
+                                            dragOffsetY = dragOffsetY.coerceAtMost(0f)
                                         }
                                     }
                                 )

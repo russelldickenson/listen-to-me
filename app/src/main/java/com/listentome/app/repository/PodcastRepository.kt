@@ -72,8 +72,7 @@ class PodcastRepository private constructor(context: Context) {
     fun observeQueue(): Flow<List<Episode>> = episodeDao.observeQueue()
 
     suspend fun addToQueue(episode: Episode) = withContext(Dispatchers.IO) {
-        val nextPosition = (episodeDao.getMaxQueuePosition() ?: 0) + 1
-        episodeDao.setQueuePosition(episode.id, nextPosition)
+        episodeDao.addToQueueAtTop(episode.id)
         if (isEligibleForDownload(episode)) {
             downloadEpisode(episode)
         }
@@ -226,7 +225,7 @@ class PodcastRepository private constructor(context: Context) {
         val toKeep = episodes.take(feed.keepLatestCount)
         val toPrune = episodes.drop(feed.keepLatestCount)
 
-        toKeep.forEach { episode ->
+        toKeep.reversed().forEach { episode ->
             if (isEligibleForDownload(episode)) {
                 downloadEpisode(episode)
             }
@@ -256,8 +255,7 @@ class PodcastRepository private constructor(context: Context) {
             }
             episodeDao.updateDownloadState(episode.id, DownloadState.DOWNLOADED, file.absolutePath)
             if (appSettings.autoplayQueueEnabled.value && episode.queuePosition == null) {
-                val nextPosition = (episodeDao.getMaxQueuePosition() ?: 0) + 1
-                episodeDao.setQueuePosition(episode.id, nextPosition)
+                episodeDao.addToQueueAtTop(episode.id)
             }
             enforceGlobalStorageCap()
         } catch (e: Exception) {

@@ -124,7 +124,19 @@ fun QueueScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Queue") },
+                title = {
+                    Column {
+                        Text("Queue")
+                        if (items.isNotEmpty()) {
+                            val countText = if (items.size == 1) "1 episode" else "${items.size} episodes"
+                            Text(
+                                text = countText,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -132,12 +144,12 @@ fun QueueScreen(
                 },
                 actions = {
                     if (items.isNotEmpty()) {
-                        val isQueuePlaying = playback.isPlaying && playback.isQueuePlaylist &&
+                        val isEpisodeInQueuePlaying = playback.isPlaying &&
                             items.any { it.episode.id == playback.currentEpisodeId }
                         IconButton(onClick = viewModel::toggleQueuePlayback) {
                             Icon(
-                                imageVector = if (isQueuePlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                contentDescription = if (isQueuePlaying) "Pause queue" else "Play queue"
+                                imageVector = if (isEpisodeInQueuePlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = if (isEpisodeInQueuePlaying) "Pause queue" else "Play queue"
                             )
                         }
                     }

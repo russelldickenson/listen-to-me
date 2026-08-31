@@ -56,11 +56,12 @@ class QueueViewModel(application: Application) : AndroidViewModel(application) {
         onOpenPlayer()
     }
 
-    /** Toggles play/pause if the current track is already part of the queue, otherwise starts playing the queue from the top. */
+    /** Toggles play/pause if the current track is part of the queue, otherwise starts playing the queue from the top. */
     fun toggleQueuePlayback() {
         val items = queue.value
         if (items.isEmpty()) return
-        if (playback.value.isQueuePlaylist && items.any { it.episode.id == playback.value.currentEpisodeId }) {
+        val currentEpisodeId = playback.value.currentEpisodeId
+        if (currentEpisodeId != null && items.any { it.episode.id == currentEpisodeId }) {
             viewModelScope.launch { playbackController.togglePlayPause() }
         } else {
             viewModelScope.launch {

@@ -193,7 +193,7 @@ fun SettingsScreen(
             )
             ListItem(
                 headlineContent = { Text("Auto-download episodes") },
-                supportingContent = { Text("Automatically download the latest N episodes. Set to 0 to disable downloads.") },
+                supportingContent = { Text("Automatically download the latest $defaultKeepLatestCount episodes. Set to 0 to disable downloads.") },
                 leadingContent = { Icon(Icons.Default.Tune, contentDescription = null) },
                 modifier = Modifier
                     .fillMaxWidth()

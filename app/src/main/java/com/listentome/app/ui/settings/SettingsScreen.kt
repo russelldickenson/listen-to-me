@@ -103,6 +103,8 @@ fun SettingsScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxWidth().padding(padding).verticalScroll(rememberScrollState())) {
+            SectionHeader("Subscriptions")
+
             ListItem(
                 headlineContent = { Text("Export subscriptions") },
                 supportingContent = { Text("Save your podcasts as an OPML file") },

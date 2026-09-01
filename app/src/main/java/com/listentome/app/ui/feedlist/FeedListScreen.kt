@@ -57,6 +57,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import com.listentome.app.R
@@ -322,7 +323,7 @@ private fun FeedRow(
                 ) {
                     Text(
                         feed.title,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleMedium.copy(lineHeight = 20.sp),
                         modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = { expanded = !expanded }) {

@@ -55,6 +55,10 @@ class FeedListViewModel(application: Application) : AndroidViewModel(application
         .map { it > 0 }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val lastRefreshedAt: StateFlow<Long?> = feeds
+        .map { list -> list.mapNotNull { it.lastRefreshedAt }.maxOrNull() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     fun refreshAll() {
         val total = feeds.value.size
         viewModelScope.launch {

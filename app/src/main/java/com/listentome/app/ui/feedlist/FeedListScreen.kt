@@ -62,9 +62,19 @@ import coil3.compose.AsyncImage
 import com.listentome.app.R
 import com.listentome.app.data.Feed
 import com.listentome.app.ui.components.HtmlText
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.roundToInt
 
 private val FeedRowHeight = 88.dp
+
+private fun formatRefreshedAt(epochMillis: Long): String {
+    val date = Date(epochMillis)
+    val timeStr = SimpleDateFormat("h:mm a", Locale.getDefault()).format(date)
+    val dateStr = SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(date)
+    return "Refreshed at $timeStr on $dateStr"
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,6 +90,7 @@ fun FeedListScreen(
     val refreshProgress by viewModel.refreshProgress.collectAsState()
     val hasStaleFeeds by viewModel.hasStaleFeeds.collectAsState()
     val hasEpisodes by viewModel.hasEpisodes.collectAsState()
+    val lastRefreshedAt by viewModel.lastRefreshedAt.collectAsState()
     val reorderHintDismissed by viewModel.reorderHintDismissed.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val haptic = LocalHapticFeedback.current
@@ -118,7 +129,16 @@ fun FeedListScreen(
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
-                        Text("Listen To Me", modifier = Modifier.padding(start = 8.dp))
+                        Column(modifier = Modifier.padding(start = 8.dp)) {
+                            Text("Listen To Me")
+                            if (lastRefreshedAt != null) {
+                                Text(
+                                    text = formatRefreshedAt(lastRefreshedAt!!),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
                 },
                 actions = {

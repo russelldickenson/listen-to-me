@@ -21,9 +21,16 @@ private val STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000L
 
 class FeedListViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = PodcastRepository.get(application)
+    private val appSettings = AppSettings.get(application)
 
     val feeds: StateFlow<List<Feed>> = repository.observeFeeds()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val reorderHintDismissed: StateFlow<Boolean> = appSettings.reorderHintDismissed
+
+    fun dismissReorderHint() {
+        appSettings.setReorderHintDismissed(true)
+    }
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()

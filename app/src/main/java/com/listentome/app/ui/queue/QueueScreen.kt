@@ -19,9 +19,13 @@ import kotlinx.coroutines.delay
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.listentome.app.ui.components.ReorderHintBanner
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -64,6 +68,8 @@ fun QueueScreen(
     val queue by viewModel.queue.collectAsState()
     val playback by viewModel.playback.collectAsState()
     val downloadProgress by viewModel.downloadProgress.collectAsState()
+    val reorderHintDismissed by viewModel.reorderHintDismissed.collectAsState()
+    val haptic = LocalHapticFeedback.current
 
     val listState = rememberLazyListState()
     var items by remember { mutableStateOf(queue) }
@@ -110,7 +116,7 @@ fun QueueScreen(
                             draggedIndex = to
                         }
                         if (draggedIndex == 0 && !listState.canScrollBackward) {
-                            dragOffsetY = dragOffsetY.coerceAtLeast(0f)
+                            dragOffsetY = dragOffsetY.coerceAtMost(0f)
                         } else if (draggedIndex == items.lastIndex && !listState.canScrollForward) {
                             dragOffsetY = dragOffsetY.coerceAtMost(0f)
                         }
@@ -165,68 +171,77 @@ fun QueueScreen(
                 Text("Your queue is empty. Long-press an episode and choose \"Add to queue\".")
             }
         } else {
-            LazyColumn(
-                state = listState,
-                contentPadding = PaddingValues(16.dp),
-                modifier = Modifier.padding(padding)
-            ) {
-                itemsIndexed(items, key = { _, item -> item.episode.id }) { index, item ->
-                    val isDragging = index == draggedIndex
-                    val isCurrentEpisode = playback.currentEpisodeId == item.episode.id
-                    QueueRow(
-                        item = item,
-                        downloadProgress = downloadProgress[item.episode.id],
-                        isCurrentEpisode = isCurrentEpisode,
-                        isPlaying = isCurrentEpisode && playback.isPlaying,
-                        isBuffering = isCurrentEpisode && playback.isBuffering,
-                        isDragging = isDragging,
-                        onPlay = { viewModel.openEpisode(item, onOpenPlayer = onPlay) },
-                        onRemove = { viewModel.removeFromQueue(item.episode) },
-                        modifier = Modifier
-                            .zIndex(if (isDragging) 1f else 0f)
-                            .graphicsLayer {
-                                translationY = if (isDragging) {
-                                    if (index == 0 && !listState.canScrollBackward) dragOffsetY.coerceAtLeast(0f)
-                                    else if (index == items.lastIndex && !listState.canScrollForward) dragOffsetY.coerceAtMost(0f)
-                                    else dragOffsetY
-                                } else 0f
-                            }
-                            .pointerInput(item.episode.id) {
-                                detectDragGesturesAfterLongPress(
-                                    onDragStart = {
-                                        draggedIndex = items.indexOfFirst { it.episode.id == item.episode.id }
-                                        dragOffsetY = 0f
-                                    },
-                                    onDragEnd = {
-                                        draggedIndex = null
-                                        dragOffsetY = 0f
-                                        viewModel.reorderQueue(items.map { it.episode.id })
-                                    },
-                                    onDragCancel = {
-                                        draggedIndex = null
-                                        dragOffsetY = 0f
-                                        items = queue
-                                    },
-                                    onDrag = { change, dragAmount ->
-                                        change.consume()
-                                        dragOffsetY += dragAmount.y
-                                        val from = draggedIndex ?: return@detectDragGesturesAfterLongPress
-                                        val to = (from + (dragOffsetY / itemHeightPx).roundToInt())
-                                            .coerceIn(0, items.lastIndex)
-                                        if (to != from) {
-                                            items = items.toMutableList().apply { add(to, removeAt(from)) }
-                                            dragOffsetY -= (to - from) * itemHeightPx
-                                            draggedIndex = to
-                                        }
-                                        if (draggedIndex == 0 && !listState.canScrollBackward) {
-                                            dragOffsetY = dragOffsetY.coerceAtLeast(0f)
-                                        } else if (draggedIndex == items.lastIndex && !listState.canScrollForward) {
-                                            dragOffsetY = dragOffsetY.coerceAtMost(0f)
-                                        }
-                                    }
-                                )
-                            }
+            Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+                if (!reorderHintDismissed && items.size >= 2) {
+                    ReorderHintBanner(
+                        onDismiss = viewModel::dismissReorderHint,
+                        text = "Tip: Long-press and drag any episode to reorder the queue."
                     )
+                }
+                LazyColumn(
+                    state = listState,
+                    contentPadding = PaddingValues(16.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    itemsIndexed(items, key = { _, item -> item.episode.id }) { index, item ->
+                        val isDragging = index == draggedIndex
+                        val isCurrentEpisode = playback.currentEpisodeId == item.episode.id
+                        QueueRow(
+                            item = item,
+                            downloadProgress = downloadProgress[item.episode.id],
+                            isCurrentEpisode = isCurrentEpisode,
+                            isPlaying = isCurrentEpisode && playback.isPlaying,
+                            isBuffering = isCurrentEpisode && playback.isBuffering,
+                            isDragging = isDragging,
+                            onPlay = { viewModel.openEpisode(item, onOpenPlayer = onPlay) },
+                            onRemove = { viewModel.removeFromQueue(item.episode) },
+                            modifier = Modifier
+                                .zIndex(if (isDragging) 1f else 0f)
+                                .graphicsLayer {
+                                    translationY = if (isDragging) {
+                                        if (index == 0 && !listState.canScrollBackward) dragOffsetY.coerceAtLeast(0f)
+                                        else if (index == items.lastIndex && !listState.canScrollForward) dragOffsetY.coerceAtMost(0f)
+                                        else dragOffsetY
+                                    } else 0f
+                                }
+                                .pointerInput(item.episode.id) {
+                                    detectDragGesturesAfterLongPress(
+                                        onDragStart = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            draggedIndex = items.indexOfFirst { it.episode.id == item.episode.id }
+                                            dragOffsetY = 0f
+                                        },
+                                        onDragEnd = {
+                                            draggedIndex = null
+                                            dragOffsetY = 0f
+                                            viewModel.reorderQueue(items.map { it.episode.id })
+                                        },
+                                        onDragCancel = {
+                                            draggedIndex = null
+                                            dragOffsetY = 0f
+                                            items = queue
+                                        },
+                                        onDrag = { change, dragAmount ->
+                                            change.consume()
+                                            dragOffsetY += dragAmount.y
+                                            val from = draggedIndex ?: return@detectDragGesturesAfterLongPress
+                                            val to = (from + (dragOffsetY / itemHeightPx).roundToInt())
+                                                .coerceIn(0, items.lastIndex)
+                                            if (to != from) {
+                                                items = items.toMutableList().apply { add(to, removeAt(from)) }
+                                                dragOffsetY -= (to - from) * itemHeightPx
+                                                draggedIndex = to
+                                            }
+                                            if (draggedIndex == 0 && !listState.canScrollBackward) {
+                                                dragOffsetY = dragOffsetY.coerceAtLeast(0f)
+                                            } else if (draggedIndex == items.lastIndex && !listState.canScrollForward) {
+                                                dragOffsetY = dragOffsetY.coerceAtMost(0f)
+                                            }
+                                        }
+                                    )
+                                }
+                        )
+                    }
                 }
             }
         }
@@ -279,21 +294,29 @@ private fun QueueRow(
                 subtitle = item.feed?.title,
                 modifier = Modifier.weight(1f).padding(start = 12.dp)
             )
-            var showMenu by remember { mutableStateOf(false) }
-            Box(contentAlignment = Alignment.Center) {
-                DownloadStatusRing(downloadState = item.episode.downloadState, downloadProgress = downloadProgress)
-                IconButton(onClick = { showMenu = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Episode actions")
-                }
-                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Remove from queue") },
-                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
-                        onClick = {
-                            showMenu = false
-                            onRemove()
-                        }
-                    )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.DragHandle,
+                    contentDescription = "Reorder",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(end = 4.dp)
+                )
+                var showMenu by remember { mutableStateOf(false) }
+                Box(contentAlignment = Alignment.Center) {
+                    DownloadStatusRing(downloadState = item.episode.downloadState, downloadProgress = downloadProgress)
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "Episode actions")
+                    }
+                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Remove from queue") },
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
+                            onClick = {
+                                showMenu = false
+                                onRemove()
+                            }
+                        )
+                    }
                 }
             }
         }

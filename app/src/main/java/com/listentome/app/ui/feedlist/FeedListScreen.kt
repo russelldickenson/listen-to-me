@@ -19,10 +19,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.listentome.app.ui.components.ReorderHintBanner
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -76,7 +80,9 @@ fun FeedListScreen(
     val refreshProgress by viewModel.refreshProgress.collectAsState()
     val hasStaleFeeds by viewModel.hasStaleFeeds.collectAsState()
     val hasEpisodes by viewModel.hasEpisodes.collectAsState()
+    val reorderHintDismissed by viewModel.reorderHintDismissed.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val haptic = LocalHapticFeedback.current
 
     var items by remember { mutableStateOf(feeds) }
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
@@ -143,6 +149,12 @@ fun FeedListScreen(
                     onRefresh = viewModel::refreshAll
                 )
             }
+            if (!reorderHintDismissed && items.size >= 2) {
+                ReorderHintBanner(
+                    onDismiss = viewModel::dismissReorderHint,
+                    text = "Tip: Long-press and drag any podcast to reorder your list."
+                )
+            }
             if (items.isEmpty()) {
                 EmptyState(onAddFeed = onAddFeed)
             } else {
@@ -159,6 +171,7 @@ fun FeedListScreen(
                                 .pointerInput(feed.id) {
                                     detectDragGesturesAfterLongPress(
                                         onDragStart = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             draggedIndex = items.indexOfFirst { it.id == feed.id }
                                             dragOffsetY = 0f
                                         },
@@ -298,6 +311,12 @@ private fun FeedRow(
                             contentDescription = if (expanded) "Hide description" else "Show description"
                         )
                     }
+                    Icon(
+                        imageVector = Icons.Default.DragHandle,
+                        contentDescription = "Reorder",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(start = 4.dp, end = 4.dp)
+                    )
                 }
             }
             if (expanded) {

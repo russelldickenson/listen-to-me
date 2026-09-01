@@ -89,6 +89,14 @@ class AppSettings private constructor(context: Context) {
         _dynamicColorEnabled.value = enabled
     }
 
+    private val _reorderHintDismissed = MutableStateFlow(prefs.getBoolean(KEY_REORDER_HINT_DISMISSED, false))
+    val reorderHintDismissed: StateFlow<Boolean> = _reorderHintDismissed.asStateFlow()
+
+    fun setReorderHintDismissed(dismissed: Boolean) {
+        prefs.edit().putBoolean(KEY_REORDER_HINT_DISMISSED, dismissed).apply()
+        _reorderHintDismissed.value = dismissed
+    }
+
     companion object {
         private const val KEY_AUTOPLAY_QUEUE = "autoplay_queue_enabled"
         private const val KEY_SKIP_FORWARD_SECONDS = "skip_forward_seconds"
@@ -100,6 +108,7 @@ class AppSettings private constructor(context: Context) {
         private const val KEY_AUTO_DELETE_PLAYED = "auto_delete_played_enabled"
         private const val KEY_HIDE_PLAYED_EPISODES = "hide_played_episodes"
         private const val KEY_DYNAMIC_COLOR_ENABLED = "dynamic_color_enabled"
+        private const val KEY_REORDER_HINT_DISMISSED = "reorder_hint_dismissed"
         const val DEFAULT_SKIP_FORWARD_SECONDS = 30
         const val DEFAULT_SKIP_BACK_SECONDS = 15
         const val AUTO_SKIP_BACK_ON_RESUME_SECONDS = 3

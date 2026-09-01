@@ -25,6 +25,11 @@ class QueueViewModel(application: Application) : AndroidViewModel(application) {
 
     val playback: StateFlow<PlaybackUiState> = playbackController.state
     val downloadProgress: StateFlow<Map<Long, Float>> = repository.downloadProgress
+    val reorderHintDismissed: StateFlow<Boolean> = appSettings.reorderHintDismissed
+
+    fun dismissReorderHint() {
+        appSettings.setReorderHintDismissed(true)
+    }
 
     val queue: StateFlow<List<QueueItem>> = combine(
         repository.observeQueue(),

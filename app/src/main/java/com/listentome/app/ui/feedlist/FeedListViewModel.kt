@@ -74,7 +74,7 @@ class FeedListViewModel(application: Application) : AndroidViewModel(application
                 if (failed.isNotEmpty()) {
                     _errorMessages.emit(
                         if (failed.size == 1) {
-                            "Failed to refresh \"${failed[0]}\""
+                            "Failed to refresh \"${failed[0].first}\": ${failed[0].second}"
                         } else {
                             "Failed to refresh ${failed.size} podcasts"
                         }

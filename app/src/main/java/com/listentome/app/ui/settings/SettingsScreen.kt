@@ -52,6 +52,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.listentome.app.repository.OpmlImportResult
 
@@ -193,7 +194,15 @@ fun SettingsScreen(
             )
             ListItem(
                 headlineContent = { Text("Auto-download episodes") },
-                supportingContent = { Text("Automatically download the latest $defaultKeepLatestCount episodes. Set to 0 to disable downloads.") },
+                supportingContent = {
+                    Text(
+                        if (defaultKeepLatestCount > 0) {
+                            "Automatically download the latest $defaultKeepLatestCount episodes"
+                        } else {
+                            "Off — new episodes aren't downloaded automatically"
+                        }
+                    )
+                },
                 leadingContent = { Icon(Icons.Default.Tune, contentDescription = null) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -201,7 +210,7 @@ fun SettingsScreen(
             )
             ListItem(
                 headlineContent = { Text("Auto-queue downloads") },
-                supportingContent = { Text("Add downloaded episodes to queue") },
+                supportingContent = { Text("Add new episodes to the queue as they're downloaded, including during refresh") },
                 leadingContent = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null) },
                 trailingContent = {
                     Switch(
@@ -304,13 +313,8 @@ fun SettingsScreen(
     }
 
     if (editingDefaultKeepLatestCount) {
-        NumberStepperDialog(
-            title = "Auto-download episodes",
-            currentValue = defaultKeepLatestCount,
-            unitLabel = "episodes",
-            step = 1,
-            minValue = 0,
-            maxValue = 50,
+        AutoDownloadDialog(
+            currentCount = defaultKeepLatestCount,
             onDismiss = { editingDefaultKeepLatestCount = false },
             onSave = { count ->
                 viewModel.setDefaultKeepLatestCount(count)
@@ -401,6 +405,69 @@ private fun SkipTimeDialog(
         maxValue = 120,
         onDismiss = onDismiss,
         onSave = onSave
+    )
+}
+
+@Composable
+private fun AutoDownloadDialog(
+    currentCount: Int,
+    onDismiss: () -> Unit,
+    onSave: (Int) -> Unit
+) {
+    var enabled by remember { mutableStateOf(currentCount > 0) }
+    var count by remember { mutableStateOf(if (currentCount > 0) currentCount else 3) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Auto-download episodes") },
+        text = {
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { enabled = !enabled },
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Automatically download new episodes")
+                    Switch(checked = enabled, onCheckedChange = { enabled = it })
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = { count = (count - 1).coerceAtLeast(1) },
+                        enabled = enabled && count > 1
+                    ) {
+                        Icon(Icons.Default.Remove, contentDescription = "Decrease")
+                    }
+                    Text(
+                        "$count episodes",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = if (enabled) Color.Unspecified else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.padding(horizontal = 24.dp)
+                    )
+                    IconButton(
+                        onClick = { count++ },
+                        enabled = enabled
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Increase")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(if (enabled) count else 0) }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
     )
 }
 

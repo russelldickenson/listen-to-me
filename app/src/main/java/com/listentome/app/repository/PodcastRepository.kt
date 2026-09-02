@@ -199,12 +199,13 @@ class PodcastRepository private constructor(context: Context) {
     }
 
     /**
-     * Refreshes every feed, skipping past any that fail. Returns the titles of feeds that failed
-     * to refresh. [onProgress] is called after each feed completes with (completed, total).
+     * Refreshes every feed, skipping past any that fail. Returns the title and failure reason of
+     * each feed that failed to refresh. [onProgress] is called after each feed completes with
+     * (completed, total).
      */
-    suspend fun refreshAllFeeds(onProgress: (Int, Int) -> Unit = { _, _ -> }): List<String> = withContext(Dispatchers.IO) {
+    suspend fun refreshAllFeeds(onProgress: (Int, Int) -> Unit = { _, _ -> }): List<Pair<String, String>> = withContext(Dispatchers.IO) {
         val feeds = feedDao.observeAll().first()
-        val failed = mutableListOf<String>()
+        val failed = mutableListOf<Pair<String, String>>()
         feeds.forEachIndexed { index, feed ->
             try {
                 refreshFeed(feed.id)
@@ -212,7 +213,7 @@ class PodcastRepository private constructor(context: Context) {
                 throw e
             } catch (e: Exception) {
                 // One feed failing to fetch/parse shouldn't stop the rest from refreshing.
-                failed.add(feed.title)
+                failed.add(feed.title to (e.message ?: e.javaClass.simpleName))
             }
             onProgress(index + 1, feeds.size)
         }

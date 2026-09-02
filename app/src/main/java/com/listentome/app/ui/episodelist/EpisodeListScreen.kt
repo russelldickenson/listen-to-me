@@ -48,9 +48,11 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -144,91 +146,95 @@ fun EpisodeListScreen(
             )
         }
     ) { padding ->
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = viewModel::refresh,
+            modifier = Modifier.fillMaxSize().padding(padding)
         ) {
-            val verticalPadding = 32.dp
-            val spacing = 12.dp
-            val targetCardHeight = 104.dp
-            val targetSlotHeight = targetCardHeight + spacing
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                val verticalPadding = 32.dp
+                val spacing = 12.dp
+                val targetCardHeight = 104.dp
+                val targetSlotHeight = targetCardHeight + spacing
 
-            val availableHeight = (maxHeight - verticalPadding).coerceAtLeast(targetCardHeight)
-            val visibleCardCount = ((availableHeight + spacing) / targetSlotHeight).toInt().coerceAtLeast(1)
-            val itemSlotHeight = (availableHeight + spacing) / visibleCardCount
-            val dynamicCardHeight = itemSlotHeight - spacing
-            val itemHeightPx = with(LocalDensity.current) { itemSlotHeight.toPx() }
+                val availableHeight = (maxHeight - verticalPadding).coerceAtLeast(targetCardHeight)
+                val visibleCardCount = ((availableHeight + spacing) / targetSlotHeight).toInt().coerceAtLeast(1)
+                val itemSlotHeight = (availableHeight + spacing) / visibleCardCount
+                val dynamicCardHeight = itemSlotHeight - spacing
+                val itemHeightPx = with(LocalDensity.current) { itemSlotHeight.toPx() }
 
-            if (items.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text("No episodes yet. Pull to refresh once you're ready.")
-                }
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    itemsIndexed(items, key = { _, episode -> episode.id }) { index, episode ->
-                        val isDragging = index == draggedIndex
-                        val isCurrentEpisode = playback.currentEpisodeId == episode.id
-                        EpisodeRow(
-                            episode = episode,
-                            cardHeight = dynamicCardHeight,
-                            fallbackArtworkUrl = feed?.imageUrl,
-                            downloadProgress = downloadProgress[episode.id],
-                            isCurrentEpisode = isCurrentEpisode,
-                            isPlaying = isCurrentEpisode && playback.isPlaying,
-                            isBuffering = isCurrentEpisode && playback.isBuffering,
-                            isDragging = isDragging,
-                            onPlayPauseClick = { viewModel.openEpisode(episode, onOpenPlayer = onPlay) },
-                            onOpenActions = { actionsEpisodeId = episode.id },
-                            modifier = Modifier
-                                .zIndex(if (isDragging) 1f else 0f)
-                                .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
-                                .pointerInput(episode.id) {
-                                    detectDragGesturesAfterLongPress(
-                                        onDragStart = {
-                                            draggedIndex = items.indexOfFirst { it.id == episode.id }
-                                            dragOffsetY = 0f
-                                        },
-                                        onDragEnd = {
-                                            draggedIndex = null
-                                            dragOffsetY = 0f
-                                            viewModel.reorderEpisodes(items.map { it.id })
-                                        },
-                                        onDragCancel = {
-                                            draggedIndex = null
-                                            dragOffsetY = 0f
-                                        },
-                                        onDrag = { change, dragAmount ->
-                                            change.consume()
-                                            dragOffsetY += dragAmount.y
-                                            val from = draggedIndex ?: return@detectDragGesturesAfterLongPress
-                                            val to = (from + (dragOffsetY / itemHeightPx).roundToInt())
-                                                .coerceIn(0, items.lastIndex)
-                                            if (to != from) {
-                                                items = items.toMutableList().apply { add(to, removeAt(from)) }
-                                                dragOffsetY -= (to - from) * itemHeightPx
-                                                draggedIndex = to
-                                            }
-                                        }
-                                    )
-                                }
-                        )
+                if (items.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("No episodes yet. Pull to refresh once you're ready.")
                     }
-                    if (hasMoreEpisodes) {
-                        item {
-                            TextButton(
-                                onClick = viewModel::loadMoreEpisodes,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("More episodes…")
+                } else {
+                    LazyColumn(
+                        contentPadding = PaddingValues(16.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        itemsIndexed(items, key = { _, episode -> episode.id }) { index, episode ->
+                            val isDragging = index == draggedIndex
+                            val isCurrentEpisode = playback.currentEpisodeId == episode.id
+                            EpisodeRow(
+                                episode = episode,
+                                cardHeight = dynamicCardHeight,
+                                fallbackArtworkUrl = feed?.imageUrl,
+                                downloadProgress = downloadProgress[episode.id],
+                                isCurrentEpisode = isCurrentEpisode,
+                                isPlaying = isCurrentEpisode && playback.isPlaying,
+                                isBuffering = isCurrentEpisode && playback.isBuffering,
+                                isDragging = isDragging,
+                                onPlayPauseClick = { viewModel.openEpisode(episode, onOpenPlayer = onPlay) },
+                                onOpenActions = { actionsEpisodeId = episode.id },
+                                modifier = Modifier
+                                    .zIndex(if (isDragging) 1f else 0f)
+                                    .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
+                                    .pointerInput(episode.id) {
+                                        detectDragGesturesAfterLongPress(
+                                            onDragStart = {
+                                                draggedIndex = items.indexOfFirst { it.id == episode.id }
+                                                dragOffsetY = 0f
+                                            },
+                                            onDragEnd = {
+                                                draggedIndex = null
+                                                dragOffsetY = 0f
+                                                viewModel.reorderEpisodes(items.map { it.id })
+                                            },
+                                            onDragCancel = {
+                                                draggedIndex = null
+                                                dragOffsetY = 0f
+                                            },
+                                            onDrag = { change, dragAmount ->
+                                                change.consume()
+                                                dragOffsetY += dragAmount.y
+                                                val from = draggedIndex ?: return@detectDragGesturesAfterLongPress
+                                                val to = (from + (dragOffsetY / itemHeightPx).roundToInt())
+                                                    .coerceIn(0, items.lastIndex)
+                                                if (to != from) {
+                                                    items = items.toMutableList().apply { add(to, removeAt(from)) }
+                                                    dragOffsetY -= (to - from) * itemHeightPx
+                                                    draggedIndex = to
+                                                }
+                                            }
+                                        )
+                                    }
+                            )
+                        }
+                        if (hasMoreEpisodes) {
+                            item {
+                                TextButton(
+                                    onClick = viewModel::loadMoreEpisodes,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("More episodes…")
+                                }
                             }
                         }
                     }
@@ -373,7 +379,8 @@ private fun FeedSettingsDialog(
     onSave: (Int) -> Unit,
     onRemoveFeed: () -> Unit
 ) {
-    var count by remember { mutableStateOf(currentKeepCount) }
+    var enabled by remember { mutableStateOf(currentKeepCount > 0) }
+    var count by remember { mutableStateOf(if (currentKeepCount > 0) currentKeepCount else 3) }
     var showRemoveConfirm by remember { mutableStateOf(false) }
 
     AlertDialog(
@@ -381,25 +388,34 @@ private fun FeedSettingsDialog(
         title = { Text("Feed settings") },
         text = {
             Column {
-                Text("Auto-download episodes", style = MaterialTheme.typography.titleSmall)
-                Text(
-                    "Automatically download the latest N episodes. Set to 0 to disable downloads.",
-                    modifier = Modifier.padding(top = 4.dp)
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { enabled = !enabled },
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Auto-download episodes", style = MaterialTheme.typography.titleSmall)
+                    Switch(checked = enabled, onCheckedChange = { enabled = it })
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = { if (count > 0) count-- }, enabled = count > 0) {
+                    IconButton(
+                        onClick = { count = (count - 1).coerceAtLeast(1) },
+                        enabled = enabled && count > 1
+                    ) {
                         Icon(Icons.Default.Remove, contentDescription = "Decrease")
                     }
                     Text(
-                        count.toString(),
+                        "$count episodes",
                         style = MaterialTheme.typography.titleLarge,
+                        color = if (enabled) Color.Unspecified else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         modifier = Modifier.padding(horizontal = 24.dp)
                     )
-                    IconButton(onClick = { count++ }) {
+                    IconButton(onClick = { count++ }, enabled = enabled) {
                         Icon(Icons.Default.Add, contentDescription = "Increase")
                     }
                 }
@@ -423,7 +439,7 @@ private fun FeedSettingsDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(count) }) { Text("Save") }
+            TextButton(onClick = { onSave(if (enabled) count else 0) }) { Text("Save") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }

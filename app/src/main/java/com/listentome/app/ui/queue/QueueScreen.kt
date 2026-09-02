@@ -168,7 +168,11 @@ fun QueueScreen(
                 modifier = Modifier.fillMaxSize().padding(padding).padding(32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Your queue is empty. Long-press an episode and choose \"Add to queue\".")
+                Text(
+                    "Your queue is empty. Long-press an episode and choose \"Add to queue\", " +
+                        "or turn on \"Auto-queue downloads\" in Settings to add new episodes automatically.",
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
             }
         } else {
             Column(modifier = Modifier.fillMaxSize().padding(padding)) {

@@ -34,6 +34,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -160,65 +161,71 @@ fun FeedListScreen(
             }
         }
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (hasStaleFeeds || isRefreshing || refreshProgress != null) {
-                StaleDataBanner(
-                    isRefreshing = isRefreshing,
-                    refreshProgress = refreshProgress,
-                    hasEpisodes = hasEpisodes,
-                    onRefresh = viewModel::refreshAll
-                )
-            }
-            if (!reorderHintDismissed && items.size >= 2) {
-                ReorderHintBanner(
-                    onDismiss = viewModel::dismissReorderHint,
-                    text = "Tip: Long-press and drag any podcast to reorder your list."
-                )
-            }
-            if (items.isEmpty()) {
-                EmptyState(onAddFeed = onAddFeed)
-            } else {
-                LazyColumn(contentPadding = PaddingValues(16.dp)) {
-                    itemsIndexed(items, key = { _, feed -> feed.id }) { index, feed ->
-                        val isDragging = index == draggedIndex
-                        FeedRow(
-                            feed = feed,
-                            onClick = { onOpenFeed(feed.id) },
-                            isDragging = isDragging,
-                            modifier = Modifier
-                                .zIndex(if (isDragging) 1f else 0f)
-                                .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
-                                .pointerInput(feed.id) {
-                                    detectDragGesturesAfterLongPress(
-                                        onDragStart = {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            draggedIndex = items.indexOfFirst { it.id == feed.id }
-                                            dragOffsetY = 0f
-                                        },
-                                        onDragEnd = {
-                                            draggedIndex = null
-                                            dragOffsetY = 0f
-                                            viewModel.reorderFeeds(items.map { it.id })
-                                        },
-                                        onDragCancel = {
-                                            draggedIndex = null
-                                            dragOffsetY = 0f
-                                        },
-                                        onDrag = { change, dragAmount ->
-                                            change.consume()
-                                            dragOffsetY += dragAmount.y
-                                            val from = draggedIndex ?: return@detectDragGesturesAfterLongPress
-                                            val to = (from + (dragOffsetY / itemHeightPx).roundToInt())
-                                                .coerceIn(0, items.lastIndex)
-                                            if (to != from) {
-                                                items = items.toMutableList().apply { add(to, removeAt(from)) }
-                                                dragOffsetY -= (to - from) * itemHeightPx
-                                                draggedIndex = to
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { if (hasEpisodes) viewModel.refreshAll() },
+            modifier = Modifier.fillMaxSize().padding(padding)
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                if (hasStaleFeeds || isRefreshing || refreshProgress != null) {
+                    StaleDataBanner(
+                        isRefreshing = isRefreshing,
+                        refreshProgress = refreshProgress,
+                        hasEpisodes = hasEpisodes,
+                        onRefresh = viewModel::refreshAll
+                    )
+                }
+                if (!reorderHintDismissed && items.size >= 2) {
+                    ReorderHintBanner(
+                        onDismiss = viewModel::dismissReorderHint,
+                        text = "Tip: Long-press and drag any podcast to reorder your list."
+                    )
+                }
+                if (items.isEmpty()) {
+                    EmptyState(onAddFeed = onAddFeed)
+                } else {
+                    LazyColumn(contentPadding = PaddingValues(16.dp)) {
+                        itemsIndexed(items, key = { _, feed -> feed.id }) { index, feed ->
+                            val isDragging = index == draggedIndex
+                            FeedRow(
+                                feed = feed,
+                                onClick = { onOpenFeed(feed.id) },
+                                isDragging = isDragging,
+                                modifier = Modifier
+                                    .zIndex(if (isDragging) 1f else 0f)
+                                    .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
+                                    .pointerInput(feed.id) {
+                                        detectDragGesturesAfterLongPress(
+                                            onDragStart = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                draggedIndex = items.indexOfFirst { it.id == feed.id }
+                                                dragOffsetY = 0f
+                                            },
+                                            onDragEnd = {
+                                                draggedIndex = null
+                                                dragOffsetY = 0f
+                                                viewModel.reorderFeeds(items.map { it.id })
+                                            },
+                                            onDragCancel = {
+                                                draggedIndex = null
+                                                dragOffsetY = 0f
+                                            },
+                                            onDrag = { change, dragAmount ->
+                                                change.consume()
+                                                dragOffsetY += dragAmount.y
+                                                val from = draggedIndex ?: return@detectDragGesturesAfterLongPress
+                                                val to = (from + (dragOffsetY / itemHeightPx).roundToInt())
+                                                    .coerceIn(0, items.lastIndex)
+                                                if (to != from) {
+                                                    items = items.toMutableList().apply { add(to, removeAt(from)) }
+                                                    dragOffsetY -= (to - from) * itemHeightPx
+                                                    draggedIndex = to
+                                                }
                                             }
-                                        }
-                                    )
-                                }
-                        )
+                                        )
+                                    }
+                            )
+                        }
                     }
                 }
             }

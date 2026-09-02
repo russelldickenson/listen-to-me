@@ -76,7 +76,8 @@ class EpisodeListViewModel(application: Application, private val feedId: Long) :
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _errorMessages.emit("Failed to refresh \"${feed.value?.title ?: "podcast"}\"")
+                val reason = e.message ?: e.javaClass.simpleName
+                _errorMessages.emit("Failed to refresh \"${feed.value?.title ?: "podcast"}\": $reason")
             } finally {
                 _isRefreshing.value = false
             }

@@ -50,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -63,18 +64,21 @@ import coil3.compose.AsyncImage
 import com.listentome.app.R
 import com.listentome.app.data.Feed
 import com.listentome.app.ui.components.HtmlText
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import kotlin.math.roundToInt
 
 private val FeedRowHeight = 88.dp
 
-private fun formatRefreshedAt(epochMillis: Long): String {
-    val date = Date(epochMillis)
-    val timeStr = SimpleDateFormat("h:mm a", Locale.getDefault()).format(date)
-    val dateStr = SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(date)
-    return "Refreshed at $timeStr on $dateStr"
+private fun formatRelativeRefreshTime(epochMillis: Long): String {
+    val diffMs = (System.currentTimeMillis() - epochMillis).coerceAtLeast(0)
+    val minutes = diffMs / 60_000
+    val hours = diffMs / 3_600_000
+    val days = diffMs / 86_400_000
+    return when {
+        minutes < 1 -> "just now"
+        minutes < 60 -> "$minutes minute${if (minutes == 1L) "" else "s"} ago"
+        hours < 24 -> "$hours hour${if (hours == 1L) "" else "s"} ago"
+        else -> "$days day${if (days == 1L) "" else "s"} ago"
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -130,16 +134,7 @@ fun FeedListScreen(
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
-                        Column(modifier = Modifier.padding(start = 8.dp)) {
-                            Text("Listen To Me")
-                            if (lastRefreshedAt != null) {
-                                Text(
-                                    text = formatRefreshedAt(lastRefreshedAt!!),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
+                        Text("Listen To Me", modifier = Modifier.padding(start = 8.dp))
                     }
                 },
                 actions = {
@@ -167,10 +162,12 @@ fun FeedListScreen(
             modifier = Modifier.fillMaxSize().padding(padding)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                if (hasStaleFeeds || isRefreshing || refreshProgress != null) {
+                if (items.isNotEmpty() || isRefreshing || refreshProgress != null) {
                     StaleDataBanner(
                         isRefreshing = isRefreshing,
                         refreshProgress = refreshProgress,
+                        hasStaleFeeds = hasStaleFeeds,
+                        lastRefreshedAt = lastRefreshedAt,
                         hasEpisodes = hasEpisodes,
                         onRefresh = viewModel::refreshAll
                     )
@@ -237,6 +234,8 @@ fun FeedListScreen(
 private fun StaleDataBanner(
     isRefreshing: Boolean,
     refreshProgress: Pair<Int, Int>?,
+    hasStaleFeeds: Boolean,
+    lastRefreshedAt: Long?,
     hasEpisodes: Boolean,
     onRefresh: () -> Unit
 ) {
@@ -261,9 +260,15 @@ private fun StaleDataBanner(
                     )
                 }
             } else {
+                val statusText = when {
+                    hasStaleFeeds -> "Episodes might be out of date (refreshed > 24 hours ago)"
+                    lastRefreshedAt != null -> "Refreshed ${formatRelativeRefreshTime(lastRefreshedAt)}"
+                    else -> "Not refreshed yet"
+                }
                 Text(
-                    text = "Episodes might be out of date (refreshed > 24 hours ago)",
+                    text = statusText,
                     style = MaterialTheme.typography.bodyMedium,
+                    color = if (hasStaleFeeds) Color.Unspecified else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f).padding(end = 8.dp)
                 )
                 Button(onClick = onRefresh, enabled = !isRefreshing && hasEpisodes) {

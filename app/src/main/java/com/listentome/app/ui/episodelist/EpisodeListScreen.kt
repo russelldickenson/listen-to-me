@@ -395,7 +395,11 @@ private fun FeedSettingsDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Auto-download episodes", style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        "Auto-download episodes",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.weight(1f).padding(end = 8.dp)
+                    )
                     Switch(checked = enabled, onCheckedChange = { enabled = it })
                 }
                 Row(

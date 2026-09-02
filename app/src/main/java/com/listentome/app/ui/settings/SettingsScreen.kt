@@ -429,7 +429,7 @@ private fun AutoDownloadDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Automatically download new episodes")
+                    Text("Automatically download new episodes", modifier = Modifier.weight(1f).padding(end = 8.dp))
                     Switch(checked = enabled, onCheckedChange = { enabled = it })
                 }
                 Row(

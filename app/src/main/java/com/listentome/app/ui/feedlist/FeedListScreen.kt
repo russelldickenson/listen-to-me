@@ -29,6 +29,7 @@ import com.listentome.app.ui.components.ReorderHintBanner
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -36,8 +37,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -50,7 +53,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -115,6 +117,19 @@ fun FeedListScreen(
         }
     }
 
+    LaunchedEffect(hasStaleFeeds) {
+        if (hasStaleFeeds) {
+            val result = snackbarHostState.showSnackbar(
+                message = "Episodes might be out of date",
+                actionLabel = "Refresh",
+                duration = SnackbarDuration.Long
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.refreshAll()
+            }
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -162,14 +177,16 @@ fun FeedListScreen(
             modifier = Modifier.fillMaxSize().padding(padding)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                if (items.isNotEmpty() || isRefreshing || refreshProgress != null) {
-                    StaleDataBanner(
-                        isRefreshing = isRefreshing,
-                        refreshProgress = refreshProgress,
-                        hasStaleFeeds = hasStaleFeeds,
-                        lastRefreshedAt = lastRefreshedAt,
-                        hasEpisodes = hasEpisodes,
-                        onRefresh = viewModel::refreshAll
+                val refreshedAt = lastRefreshedAt
+                if (isRefreshing || refreshProgress != null) {
+                    RefreshingRow(refreshProgress = refreshProgress)
+                } else if (refreshedAt != null) {
+                    Text(
+                        text = "Refreshed ${formatRelativeRefreshTime(refreshedAt)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp)
                     )
                 }
                 if (!reorderHintDismissed && items.size >= 2) {
@@ -231,50 +248,27 @@ fun FeedListScreen(
 }
 
 @Composable
-private fun StaleDataBanner(
-    isRefreshing: Boolean,
-    refreshProgress: Pair<Int, Int>?,
-    hasStaleFeeds: Boolean,
-    lastRefreshedAt: Long?,
-    hasEpisodes: Boolean,
-    onRefresh: () -> Unit
-) {
-    Card(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (isRefreshing || refreshProgress != null) {
-                Text(
-                    text = "Refreshing...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f)
-                )
-                if (refreshProgress != null) {
-                    val (completed, total) = refreshProgress
-                    Text(
-                        text = "$completed/$total",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                val statusText = when {
-                    hasStaleFeeds -> "Episodes might be out of date (refreshed > 24 hours ago)"
-                    lastRefreshedAt != null -> "Refreshed ${formatRelativeRefreshTime(lastRefreshedAt)}"
-                    else -> "Not refreshed yet"
-                }
-                Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (hasStaleFeeds) Color.Unspecified else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f).padding(end = 8.dp)
-                )
-                Button(onClick = onRefresh, enabled = !isRefreshing && hasEpisodes) {
-                    Text("Refresh")
-                }
-            }
+private fun RefreshingRow(refreshProgress: Pair<Int, Int>?) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+            Text(
+                text = "Refreshing...",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(start = 12.dp)
+            )
+        }
+        if (refreshProgress != null) {
+            val (completed, total) = refreshProgress
+            Text(
+                text = "$completed/$total",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

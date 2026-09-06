@@ -22,7 +22,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -56,12 +55,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -323,14 +323,18 @@ private fun FeedRow(
         var expanded by remember { mutableStateOf(false) }
         Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
             Box(
-                modifier = Modifier.fillMaxHeight().width(20.dp),
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(20.dp)
+                    .semantics { contentDescription = "Reorder" },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.DragHandle,
-                    contentDescription = "Reorder",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.size(18.dp).rotate(90f)
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight(0.7f)
+                        .width(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
                 )
             }
             Column(modifier = Modifier.weight(1f).padding(end = 12.dp, top = 12.dp, bottom = 12.dp)) {

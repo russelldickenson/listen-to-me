@@ -136,9 +136,6 @@ fun EpisodeListScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = viewModel::refresh, enabled = !isRefreshing) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh episodes")
-                    }
                     IconButton(onClick = { showSettings = true }) {
                         Icon(Icons.Default.Settings, contentDescription = "Feed settings")
                     }

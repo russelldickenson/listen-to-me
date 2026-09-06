@@ -284,7 +284,8 @@ private fun QueueRow(
         Row(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier
-                    .fillMaxHeight()
+                    .padding(top = 12.dp)
+                    .height(56.dp)
                     .width(20.dp)
                     .semantics { contentDescription = "Reorder" },
                 contentAlignment = Alignment.Center
@@ -299,7 +300,7 @@ private fun QueueRow(
                                 .fillMaxHeight(0.6f)
                                 .width(1.5.dp)
                                 .clip(RoundedCornerShape(0.75.dp))
-                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                                .background(MaterialTheme.colorScheme.outlineVariant)
                         )
                     }
                 }

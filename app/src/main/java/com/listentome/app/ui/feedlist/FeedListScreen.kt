@@ -339,7 +339,7 @@ private fun FeedRow(
                                 .fillMaxHeight(0.6f)
                                 .width(1.5.dp)
                                 .clip(RoundedCornerShape(0.75.dp))
-                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                                .background(MaterialTheme.colorScheme.outlineVariant)
                         )
                     }
                 }

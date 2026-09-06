@@ -337,8 +337,8 @@ private fun FeedRow(
                         Box(
                             modifier = Modifier
                                 .fillMaxHeight(0.6f)
-                                .width(3.dp)
-                                .clip(RoundedCornerShape(1.5.dp))
+                                .width(1.5.dp)
+                                .clip(RoundedCornerShape(0.75.dp))
                                 .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
                         )
                     }

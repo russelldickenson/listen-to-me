@@ -3,23 +3,26 @@ package com.listentome.app.ui.queue
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import kotlinx.coroutines.delay
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -46,9 +49,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.listentome.app.ui.components.DownloadStatusRing
@@ -275,35 +281,51 @@ private fun QueueRow(
             }
         )
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            EpisodeArtwork(
-                imageUrl = item.episode.imageUrl ?: item.feed?.imageUrl,
-                contentDescription = item.episode.title,
-                downloadState = item.episode.downloadState,
-                downloadProgress = downloadProgress,
-                isFinished = item.episode.isFinished,
-                isQueued = item.episode.queuePosition != null,
-                isCurrentEpisode = isCurrentEpisode,
-                isPlaying = isPlaying,
-                isBuffering = isBuffering
-            )
-            EpisodeInfoColumn(
-                title = item.episode.title,
-                publishedAt = item.episode.publishedAt,
-                isFinished = item.episode.isFinished,
-                subtitle = item.feed?.title,
-                modifier = Modifier.weight(1f).padding(start = 12.dp)
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.DragHandle,
-                    contentDescription = "Reorder",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.padding(end = 4.dp)
+        Row(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(20.dp)
+                    .semantics { contentDescription = "Reorder" },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    repeat(2) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight(0.6f)
+                                .width(1.5.dp)
+                                .clip(RoundedCornerShape(0.75.dp))
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                        )
+                    }
+                }
+            }
+            Row(
+                modifier = Modifier.weight(1f).padding(end = 12.dp, top = 12.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                EpisodeArtwork(
+                    imageUrl = item.episode.imageUrl ?: item.feed?.imageUrl,
+                    contentDescription = item.episode.title,
+                    downloadState = item.episode.downloadState,
+                    downloadProgress = downloadProgress,
+                    isFinished = item.episode.isFinished,
+                    isQueued = item.episode.queuePosition != null,
+                    isCurrentEpisode = isCurrentEpisode,
+                    isPlaying = isPlaying,
+                    isBuffering = isBuffering
+                )
+                EpisodeInfoColumn(
+                    title = item.episode.title,
+                    publishedAt = item.episode.publishedAt,
+                    isFinished = item.episode.isFinished,
+                    subtitle = item.feed?.title,
+                    modifier = Modifier.weight(1f).padding(start = 12.dp)
                 )
                 var showMenu by remember { mutableStateOf(false) }
                 Box(contentAlignment = Alignment.Center) {

@@ -326,7 +326,8 @@ private fun FeedRow(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
-                        .padding(end = 8.dp)
+                        .padding(end = 4.dp)
+                        .size(18.dp)
                         .rotate(90f)
                 )
                 AsyncImage(

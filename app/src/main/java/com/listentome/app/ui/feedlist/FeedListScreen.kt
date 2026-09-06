@@ -174,7 +174,8 @@ fun FeedListScreen(
         PullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = { if (hasEpisodes) viewModel.refreshAll() },
-            modifier = Modifier.fillMaxSize().padding(padding)
+            modifier = Modifier.fillMaxSize().padding(padding),
+            indicator = {}
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 val refreshedAt = lastRefreshedAt

@@ -329,13 +329,20 @@ private fun FeedRow(
                     .semantics { contentDescription = "Reorder" },
                 contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight(0.75f)
-                        .width(6.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    repeat(2) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight(0.6f)
+                                .width(3.dp)
+                                .clip(RoundedCornerShape(1.5.dp))
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                        )
+                    }
+                }
             }
             Column(modifier = Modifier.weight(1f).padding(end = 12.dp, top = 12.dp, bottom = 12.dp)) {
                 Row(verticalAlignment = Alignment.Top) {

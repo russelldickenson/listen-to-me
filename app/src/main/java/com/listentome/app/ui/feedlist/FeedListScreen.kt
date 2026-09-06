@@ -6,13 +6,16 @@ import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -318,51 +321,54 @@ private fun FeedRow(
         )
     ) {
         var expanded by remember { mutableStateOf(false) }
-        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-            Row(verticalAlignment = Alignment.Top) {
+        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+            Box(
+                modifier = Modifier.fillMaxHeight().width(20.dp),
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(
                     imageVector = Icons.Default.DragHandle,
                     contentDescription = "Reorder",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier
-                        .align(Alignment.CenterVertically)
-                        .padding(end = 4.dp)
-                        .size(18.dp)
-                        .rotate(90f)
+                    modifier = Modifier.size(18.dp).rotate(90f)
                 )
-                AsyncImage(
-                    model = feed.imageUrl,
-                    contentDescription = feed.title,
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Crop
-                )
-                Row(
-                    modifier = Modifier.padding(start = 12.dp).weight(1f),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        feed.title,
-                        style = MaterialTheme.typography.titleMedium.copy(lineHeight = 20.sp),
-                        modifier = Modifier.weight(1f)
+            }
+            Column(modifier = Modifier.weight(1f).padding(end = 12.dp, top = 12.dp, bottom = 12.dp)) {
+                Row(verticalAlignment = Alignment.Top) {
+                    AsyncImage(
+                        model = feed.imageUrl,
+                        contentDescription = feed.title,
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop
                     )
-                    IconButton(onClick = { expanded = !expanded }) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = if (expanded) "Hide description" else "Show description",
-                            tint = if (expanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    Row(
+                        modifier = Modifier.padding(start = 12.dp).weight(1f),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            feed.title,
+                            style = MaterialTheme.typography.titleMedium.copy(lineHeight = 20.sp),
+                            modifier = Modifier.weight(1f)
                         )
+                        IconButton(onClick = { expanded = !expanded }) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = if (expanded) "Hide description" else "Show description",
+                                tint = if (expanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
-            }
-            if (expanded) {
-                HtmlText(
-                    html = feed.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
+                if (expanded) {
+                    HtmlText(
+                        html = feed.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
             }
         }
     }

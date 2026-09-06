@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
@@ -58,7 +59,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -70,9 +70,7 @@ import coil3.compose.AsyncImage
 import com.listentome.app.R
 import com.listentome.app.data.Feed
 import com.listentome.app.ui.components.HtmlText
-import kotlin.math.roundToInt
-
-private val FeedRowHeight = 88.dp
+import com.listentome.app.ui.components.performReorderSwap
 
 private fun formatRelativeRefreshTime(epochMillis: Long): String {
     val diffMs = (System.currentTimeMillis() - epochMillis).coerceAtLeast(0)
@@ -106,10 +104,10 @@ fun FeedListScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val haptic = LocalHapticFeedback.current
 
+    val listState = rememberLazyListState()
     var items by remember { mutableStateOf(feeds) }
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
     var dragOffsetY by remember { mutableStateOf(0f) }
-    val itemHeightPx = with(LocalDensity.current) { FeedRowHeight.toPx() }
 
     LaunchedEffect(feeds) {
         if (draggedIndex == null) items = feeds
@@ -203,7 +201,7 @@ fun FeedListScreen(
                     if (items.isEmpty()) {
                         EmptyState(onAddFeed = onAddFeed)
                     } else {
-                        LazyColumn(contentPadding = PaddingValues(16.dp)) {
+                        LazyColumn(state = listState, contentPadding = PaddingValues(16.dp)) {
                             itemsIndexed(items, key = { _, feed -> feed.id }) { index, feed ->
                                 val isDragging = index == draggedIndex
                                 FeedRow(
@@ -233,12 +231,10 @@ fun FeedListScreen(
                                                     change.consume()
                                                     dragOffsetY += dragAmount.y
                                                     val from = draggedIndex ?: return@detectDragGesturesAfterLongPress
-                                                    val to = (from + (dragOffsetY / itemHeightPx).roundToInt())
-                                                        .coerceIn(0, items.lastIndex)
-                                                    if (to != from) {
-                                                        items = items.toMutableList().apply { add(to, removeAt(from)) }
-                                                        dragOffsetY -= (to - from) * itemHeightPx
-                                                        draggedIndex = to
+                                                    performReorderSwap(listState, items, from, dragOffsetY)?.let { (newItems, newIndex, newOffset) ->
+                                                        items = newItems
+                                                        draggedIndex = newIndex
+                                                        dragOffsetY = newOffset
                                                     }
                                                 }
                                             )

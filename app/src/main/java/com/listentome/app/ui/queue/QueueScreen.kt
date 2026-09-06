@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -60,41 +59,7 @@ import androidx.compose.ui.zIndex
 import com.listentome.app.ui.components.DownloadStatusRing
 import com.listentome.app.ui.components.EpisodeArtwork
 import com.listentome.app.ui.components.EpisodeInfoColumn
-
-/**
- * Checks whether the dragged item (at [draggedIndex], visually offset by [dragOffsetY] pixels from
- * its laid-out position) has been dragged past the center of an adjacent item, using each item's
- * real measured position and size from [listState] rather than assuming a uniform row height. If
- * so, swaps them and returns the updated items/index/offset; otherwise returns null. Called on
- * every drag/auto-scroll update, so a fast drag cascades across multiple rows over successive
- * calls rather than needing to resolve every swap in one pass.
- */
-private fun performQueueSwap(
-    listState: LazyListState,
-    items: List<QueueItem>,
-    draggedIndex: Int,
-    dragOffsetY: Float
-): Triple<List<QueueItem>, Int, Float>? {
-    val draggedInfo = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == draggedIndex } ?: return null
-    val draggedCenter = draggedInfo.offset + dragOffsetY + draggedInfo.size / 2f
-
-    if (dragOffsetY < 0 && draggedIndex > 0) {
-        val prevInfo = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == draggedIndex - 1 }
-        if (prevInfo != null && draggedCenter < prevInfo.offset + prevInfo.size / 2f) {
-            val newOffset = dragOffsetY - (prevInfo.offset - draggedInfo.offset)
-            val newItems = items.toMutableList().apply { add(draggedIndex - 1, removeAt(draggedIndex)) }
-            return Triple(newItems, draggedIndex - 1, newOffset)
-        }
-    } else if (dragOffsetY > 0 && draggedIndex < items.lastIndex) {
-        val nextInfo = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == draggedIndex + 1 }
-        if (nextInfo != null && draggedCenter > nextInfo.offset + nextInfo.size / 2f) {
-            val newOffset = dragOffsetY - (nextInfo.offset - draggedInfo.offset)
-            val newItems = items.toMutableList().apply { add(draggedIndex + 1, removeAt(draggedIndex)) }
-            return Triple(newItems, draggedIndex + 1, newOffset)
-        }
-    }
-    return null
-}
+import com.listentome.app.ui.components.performReorderSwap
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -146,7 +111,7 @@ fun QueueScreen(
                     val consumed = listState.scrollBy(scrollDelta)
                     if (consumed != 0f) {
                         dragOffsetY -= consumed
-                        performQueueSwap(listState, items, currentDragged, dragOffsetY)?.let { (newItems, newIndex, newOffset) ->
+                        performReorderSwap(listState, items, currentDragged, dragOffsetY)?.let { (newItems, newIndex, newOffset) ->
                             items = newItems
                             draggedIndex = newIndex
                             dragOffsetY = newOffset
@@ -265,7 +230,7 @@ fun QueueScreen(
                                             change.consume()
                                             dragOffsetY += dragAmount.y
                                             val from = draggedIndex ?: return@detectDragGesturesAfterLongPress
-                                            performQueueSwap(listState, items, from, dragOffsetY)?.let { (newItems, newIndex, newOffset) ->
+                                            performReorderSwap(listState, items, from, dragOffsetY)?.let { (newItems, newIndex, newOffset) ->
                                                 items = newItems
                                                 draggedIndex = newIndex
                                                 dragOffsetY = newOffset

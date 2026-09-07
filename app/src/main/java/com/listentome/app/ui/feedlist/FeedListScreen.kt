@@ -186,7 +186,7 @@ fun FeedListScreen(
                     } else if (refreshedAt != null) {
                         Text(
                             text = "Refreshed ${formatRelativeRefreshTime(refreshedAt)}",
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp)

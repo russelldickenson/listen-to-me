@@ -4,24 +4,21 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.zIndex
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -78,7 +75,7 @@ import com.listentome.app.data.Feed
 import com.listentome.app.ui.components.DownloadStatusRing
 import com.listentome.app.ui.components.EpisodeArtwork
 import com.listentome.app.ui.components.EpisodeInfoColumn
-import kotlin.math.roundToInt
+import com.listentome.app.ui.components.performReorderSwap
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,6 +94,7 @@ fun EpisodeListScreen(
     var showSettings by remember { mutableStateOf(false) }
     var actionsEpisodeId by remember { mutableStateOf<Long?>(null) }
 
+    val listState = rememberLazyListState()
     var items by remember { mutableStateOf(episodes) }
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
     var dragOffsetY by remember { mutableStateOf(0f) }
@@ -148,20 +146,7 @@ fun EpisodeListScreen(
             onRefresh = viewModel::refresh,
             modifier = Modifier.fillMaxSize().padding(padding)
         ) {
-            BoxWithConstraints(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                val verticalPadding = 32.dp
-                val spacing = 12.dp
-                val targetCardHeight = 104.dp
-                val targetSlotHeight = targetCardHeight + spacing
-
-                val availableHeight = (maxHeight - verticalPadding).coerceAtLeast(targetCardHeight)
-                val visibleCardCount = ((availableHeight + spacing) / targetSlotHeight).toInt().coerceAtLeast(1)
-                val itemSlotHeight = (availableHeight + spacing) / visibleCardCount
-                val dynamicCardHeight = itemSlotHeight - spacing
-                val itemHeightPx = with(LocalDensity.current) { itemSlotHeight.toPx() }
-
+            Box(modifier = Modifier.fillMaxSize()) {
                 if (items.isEmpty()) {
                     Column(
                         modifier = Modifier
@@ -173,6 +158,7 @@ fun EpisodeListScreen(
                     }
                 } else {
                     LazyColumn(
+                        state = listState,
                         contentPadding = PaddingValues(16.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
@@ -181,7 +167,6 @@ fun EpisodeListScreen(
                             val isCurrentEpisode = playback.currentEpisodeId == episode.id
                             EpisodeRow(
                                 episode = episode,
-                                cardHeight = dynamicCardHeight,
                                 fallbackArtworkUrl = feed?.imageUrl,
                                 downloadProgress = downloadProgress[episode.id],
                                 isCurrentEpisode = isCurrentEpisode,
@@ -212,12 +197,10 @@ fun EpisodeListScreen(
                                                 change.consume()
                                                 dragOffsetY += dragAmount.y
                                                 val from = draggedIndex ?: return@detectDragGesturesAfterLongPress
-                                                val to = (from + (dragOffsetY / itemHeightPx).roundToInt())
-                                                    .coerceIn(0, items.lastIndex)
-                                                if (to != from) {
-                                                    items = items.toMutableList().apply { add(to, removeAt(from)) }
-                                                    dragOffsetY -= (to - from) * itemHeightPx
-                                                    draggedIndex = to
+                                                performReorderSwap(listState, items, from, dragOffsetY)?.let { (newItems, newIndex, newOffset) ->
+                                                    items = newItems
+                                                    draggedIndex = newIndex
+                                                    dragOffsetY = newOffset
                                                 }
                                             }
                                         )
@@ -468,7 +451,6 @@ private fun FeedSettingsDialog(
 @Composable
 private fun EpisodeRow(
     episode: Episode,
-    cardHeight: Dp,
     fallbackArtworkUrl: String?,
     downloadProgress: Float?,
     isCurrentEpisode: Boolean,
@@ -482,7 +464,6 @@ private fun EpisodeRow(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(cardHeight)
             .padding(bottom = 12.dp)
             .clickable(onClick = onPlayPauseClick),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 1.dp),

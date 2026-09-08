@@ -406,20 +406,24 @@ private fun FeedSettingsDialog(
 
                 HorizontalDivider(modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
 
-                ListItem(
-                    headlineContent = { Text("Remove this podcast", color = MaterialTheme.colorScheme.error) },
-                    leadingContent = {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    },
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { showRemoveConfirm = true }
-                )
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                    Text(
+                        "Remove this podcast",
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(start = 16.dp)
+                    )
+                }
             }
         },
         confirmButton = {

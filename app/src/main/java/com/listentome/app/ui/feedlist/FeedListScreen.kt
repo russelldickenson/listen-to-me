@@ -56,7 +56,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -332,10 +334,10 @@ private fun FeedRow(
                     repeat(2) {
                         Box(
                             modifier = Modifier
-                                .fillMaxHeight(0.6f)
+                                .fillMaxHeight(0.4f)
                                 .width(1.5.dp)
                                 .clip(RoundedCornerShape(0.75.dp))
-                                .background(MaterialTheme.colorScheme.outlineVariant)
+                                .background(if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) Color(0xFF2B2B2B) else Color(0xFFD4D4D4))
                         )
                     }
                 }

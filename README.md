@@ -92,10 +92,13 @@ Release builds are signed using `keystore/keystore.properties`, which is not com
 
 This runs `assembleRelease` and copies the output to `app/build/outputs/apk/release/listentome.apk`. Without a keystore configured, the build falls back to unsigned.
 
-## Authors
+## Author
+
+**Russell Dickenson** — [GitHub](https://github.com/russelldickenson)
+- Aided by agentic coding agents Claude and Cline
 
 Russell Dickenson, Claude, Cline
 
 ## License
 
-[GPL-3.0](./LICENSE)
+[GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.en.html)

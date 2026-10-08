@@ -15,7 +15,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -212,6 +215,16 @@ fun QueueScreen(
                         text = "Tip: Long-press and drag any episode to reorder the queue."
                     )
                 }
+                val inProgress = queue.filter {
+                    it.episode.playbackPositionMs > 0 && !it.episode.isFinished &&
+                        it.episode.id != playback.currentEpisodeId
+                }
+                if (inProgress.isNotEmpty()) {
+                    ContinueListeningStrip(
+                        items = inProgress,
+                        onPlay = { viewModel.openEpisode(it, onOpenPlayer = onPlay) }
+                    )
+                }
                 LazyColumn(
                     state = listState,
                     contentPadding = PaddingValues(16.dp),
@@ -403,5 +416,63 @@ private fun QueueRow(
             }
         }
     }
+    }
+}
+
+/** Fixed strip above the queue (outside the reorderable list) for episodes that are partly played. */
+@Composable
+private fun ContinueListeningStrip(items: List<QueueItem>, onPlay: (QueueItem) -> Unit) {
+    Column(modifier = Modifier.padding(top = 8.dp)) {
+        Text(
+            "Continue listening",
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(items, key = { it.episode.id }) { item ->
+                val episode = item.episode
+                val durationMs = (episode.durationSeconds ?: 0L) * 1000
+                Card(
+                    modifier = Modifier.width(260.dp).clickable { onPlay(item) },
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        coil3.compose.AsyncImage(
+                            model = episode.imageUrl ?: item.feed?.imageUrl,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(6.dp)),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                        Column(modifier = Modifier.weight(1f).padding(start = 10.dp)) {
+                            Text(
+                                episode.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 2,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                            if (durationMs > episode.playbackPositionMs) {
+                                androidx.compose.material3.LinearProgressIndicator(
+                                    progress = { (episode.playbackPositionMs.toFloat() / durationMs).coerceIn(0f, 1f) },
+                                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                                    gapSize = 0.dp,
+                                    drawStopIndicator = {}
+                                )
+                            }
+                        }
+                        Icon(
+                            Icons.Default.PlayArrow,
+                            contentDescription = "Resume",
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
+                }
+            }
+        }
     }
 }

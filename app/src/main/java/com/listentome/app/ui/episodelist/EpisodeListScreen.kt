@@ -70,6 +70,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
@@ -97,6 +99,7 @@ fun EpisodeListScreen(
     val playback by viewModel.playback.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val haptic = LocalHapticFeedback.current
     var showSettings by remember { mutableStateOf(false) }
     var actionsEpisodeId by remember { mutableStateOf<Long?>(null) }
 
@@ -205,6 +208,7 @@ fun EpisodeListScreen(
                                     .pointerInput(episode.id) {
                                         detectDragGesturesAfterLongPress(
                                             onDragStart = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                 draggedIndex = items.indexOfFirst { it.id == episode.id }
                                                 dragOffsetY = 0f
                                             },

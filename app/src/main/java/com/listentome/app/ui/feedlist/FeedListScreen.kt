@@ -96,7 +96,6 @@ fun FeedListScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val refreshProgress by viewModel.refreshProgress.collectAsState()
     val hasStaleFeeds by viewModel.hasStaleFeeds.collectAsState()
-    val hasEpisodes by viewModel.hasEpisodes.collectAsState()
     val lastRefreshedAt by viewModel.lastRefreshedAt.collectAsState()
     val reorderHintDismissed by viewModel.reorderHintDismissed.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -152,7 +151,7 @@ fun FeedListScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = viewModel::refreshAll, enabled = !isRefreshing && refreshProgress == null && hasEpisodes) {
+                    IconButton(onClick = viewModel::refreshAll, enabled = !isRefreshing && refreshProgress == null && feeds.isNotEmpty()) {
                         Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh all feeds")
                     }
                 }
@@ -167,7 +166,7 @@ fun FeedListScreen(
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
-                onRefresh = { if (hasEpisodes) viewModel.refreshAll() },
+                onRefresh = { if (feeds.isNotEmpty()) viewModel.refreshAll() },
                 modifier = Modifier.fillMaxSize(),
                 indicator = {}
             ) {

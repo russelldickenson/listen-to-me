@@ -23,6 +23,12 @@ import androidx.compose.ui.zIndex
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.material.icons.automirrored.filled.PlaylistAddCheck
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
@@ -103,6 +109,23 @@ fun EpisodeListScreen(
         if (draggedIndex == null) items = episodes
     }
 
+    val scope = rememberCoroutineScope()
+    fun toggleQueue(episode: Episode) {
+        val wasQueued = episode.queuePosition != null
+        if (wasQueued) viewModel.removeFromQueue(episode) else viewModel.addToQueue(episode)
+        scope.launch {
+            snackbarHostState.currentSnackbarData?.dismiss()
+            val result = snackbarHostState.showSnackbar(
+                message = if (wasQueued) "Removed from queue" else "Added to top of queue",
+                actionLabel = "Undo",
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                if (wasQueued) viewModel.addToQueue(episode) else viewModel.removeFromQueue(episode)
+            }
+        }
+    }
+
     LaunchedEffect(viewModel) {
         viewModel.errorMessages.collect { message ->
             snackbarHostState.showSnackbar(message)
@@ -175,6 +198,7 @@ fun EpisodeListScreen(
                                 isDragging = isDragging,
                                 onPlayPauseClick = { viewModel.openEpisode(episode, onOpenPlayer = onPlay) },
                                 onOpenActions = { actionsEpisodeId = episode.id },
+                                onToggleQueue = { toggleQueue(episode) },
                                 modifier = Modifier
                                     .zIndex(if (isDragging) 1f else 0f)
                                     .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
@@ -463,6 +487,7 @@ private fun EpisodeRow(
     isDragging: Boolean,
     onPlayPauseClick: () -> Unit,
     onOpenActions: () -> Unit,
+    onToggleQueue: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -503,6 +528,14 @@ private fun EpisodeRow(
                 durationSeconds = episode.durationSeconds,
                 modifier = Modifier.weight(1f).padding(start = 12.dp)
             )
+            val isQueued = episode.queuePosition != null
+            IconButton(onClick = onToggleQueue) {
+                Icon(
+                    imageVector = if (isQueued) Icons.AutoMirrored.Filled.PlaylistAddCheck else Icons.AutoMirrored.Filled.PlaylistAdd,
+                    contentDescription = if (isQueued) "Remove from queue" else "Add to queue",
+                    tint = if (isQueued) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                )
+            }
             Box(contentAlignment = Alignment.Center) {
                 DownloadStatusRing(downloadState = episode.downloadState, downloadProgress = downloadProgress)
                 IconButton(onClick = onOpenActions) {

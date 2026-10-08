@@ -46,6 +46,12 @@ class QueueViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { repository.reorderQueue(orderedEpisodeIds) }
     }
 
+    /** [episode] must be the snapshot taken before removal, so its old queue position is intact. */
+    fun restoreToQueue(episode: Episode) {
+        val position = episode.queuePosition ?: return
+        viewModelScope.launch { repository.restoreQueuePosition(episode.id, position) }
+    }
+
     fun removeFromQueue(episode: Episode) {
         viewModelScope.launch { repository.removeFromQueue(episode.id) }
     }

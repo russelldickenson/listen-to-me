@@ -38,6 +38,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.runtime.rememberCoroutineScope
+import com.listentome.app.data.Episode
+import kotlinx.coroutines.launch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -75,6 +85,21 @@ fun QueueScreen(
     val downloadProgress by viewModel.downloadProgress.collectAsState()
     val reorderHintDismissed by viewModel.reorderHintDismissed.collectAsState()
     val haptic = LocalHapticFeedback.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    fun removeWithUndo(episode: Episode) {
+        viewModel.removeFromQueue(episode)
+        scope.launch {
+            snackbarHostState.currentSnackbarData?.dismiss()
+            val result = snackbarHostState.showSnackbar(
+                message = "Removed from queue",
+                actionLabel = "Undo",
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) viewModel.restoreToQueue(episode)
+        }
+    }
 
     val listState = rememberLazyListState()
     var items by remember { mutableStateOf(queue) }
@@ -131,6 +156,7 @@ fun QueueScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -202,7 +228,7 @@ fun QueueScreen(
                             isBuffering = isCurrentEpisode && playback.isBuffering,
                             isDragging = isDragging,
                             onPlay = { viewModel.openEpisode(item, onOpenPlayer = onPlay) },
-                            onRemove = { viewModel.removeFromQueue(item.episode) },
+                            onRemove = { removeWithUndo(item.episode) },
                             modifier = Modifier
                                 .zIndex(if (isDragging) 1f else 0f)
                                 .graphicsLayer {
@@ -266,8 +292,39 @@ private fun QueueRow(
     onRemove: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                onRemove()
+                true
+            } else {
+                false
+            }
+        }
+    )
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        modifier = modifier.fillMaxWidth().padding(bottom = 12.dp),
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CardDefaults.shape)
+                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .padding(end = 24.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Remove from queue",
+                    tint = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+        }
+    ) {
     Card(
-        modifier = modifier.fillMaxWidth().padding(bottom = 12.dp).clickable(onClick = onPlay),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onPlay),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 1.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isDragging) {
@@ -345,5 +402,6 @@ private fun QueueRow(
                 }
             }
         }
+    }
     }
 }

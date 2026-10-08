@@ -84,6 +84,11 @@ class PodcastRepository private constructor(context: Context) {
         (episode.downloadState == DownloadState.NOT_DOWNLOADED || episode.downloadState == DownloadState.FAILED) &&
             episode.audioUrl.isNotBlank()
 
+    /** Puts a just-removed episode back at its previous queue position (used by undo). */
+    suspend fun restoreQueuePosition(episodeId: Long, position: Long) = withContext(Dispatchers.IO) {
+        episodeDao.setQueuePosition(episodeId, position)
+    }
+
     suspend fun removeFromQueue(episodeId: Long) = withContext(Dispatchers.IO) {
         episodeDao.setQueuePosition(episodeId, null)
     }

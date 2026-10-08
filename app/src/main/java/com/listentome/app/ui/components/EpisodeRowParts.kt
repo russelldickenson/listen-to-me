@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -194,7 +195,9 @@ fun EpisodeInfoColumn(
     publishedAt: Long,
     isFinished: Boolean,
     modifier: Modifier = Modifier,
-    subtitle: String? = null
+    subtitle: String? = null,
+    positionMs: Long = 0,
+    durationSeconds: Long? = null
 ) {
     Column(modifier = modifier) {
         Text(
@@ -218,7 +221,27 @@ fun EpisodeInfoColumn(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
+        val durationMs = (durationSeconds ?: 0L) * 1000
+        if (!isFinished && positionMs > 0 && durationMs > positionMs) {
+            LinearProgressIndicator(
+                progress = { (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) },
+                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                gapSize = 0.dp,
+                drawStopIndicator = {}
+            )
+            Text(
+                text = "${formatTimeLeft(durationMs - positionMs)} left",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp)
+            )
+        }
     }
+}
+
+private fun formatTimeLeft(ms: Long): String {
+    val minutes = ((ms + 59_999) / 60_000).coerceAtLeast(1)
+    return if (minutes >= 60) "${minutes / 60}h ${minutes % 60}m" else "${minutes}m"
 }
 
 fun formatEpisodeDate(epochMillis: Long): String {

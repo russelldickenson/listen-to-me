@@ -46,18 +46,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    init {
-        viewModelScope.launch {
-            playback.collect { state ->
-                val id = state.currentEpisodeId ?: return@collect
-                if (state.positionMs > 0) {
-                    val finished = state.durationMs > 0 && state.positionMs >= state.durationMs - 1000
-                    repository.updatePlaybackProgress(id, state.positionMs, finished)
-                }
-            }
-        }
-    }
-
     fun togglePlayPause() {
         viewModelScope.launch { playbackController.togglePlayPause() }
     }

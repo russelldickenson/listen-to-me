@@ -24,7 +24,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.listentome.app.ui.components.ReorderHintBanner
@@ -91,8 +90,7 @@ private fun formatRelativeRefreshTime(epochMillis: Long): String {
 fun FeedListScreen(
     viewModel: FeedListViewModel,
     onAddFeed: () -> Unit,
-    onOpenFeed: (Long) -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenFeed: (Long) -> Unit
 ) {
     val feeds by viewModel.feeds.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
@@ -156,9 +154,6 @@ fun FeedListScreen(
                 actions = {
                     IconButton(onClick = viewModel::refreshAll, enabled = !isRefreshing && refreshProgress == null && hasEpisodes) {
                         Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh all feeds")
-                    }
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings")
                     }
                 }
             )

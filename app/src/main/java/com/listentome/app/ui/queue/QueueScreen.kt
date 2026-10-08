@@ -322,6 +322,8 @@ private fun QueueRow(
                     publishedAt = item.episode.publishedAt,
                     isFinished = item.episode.isFinished,
                     subtitle = item.feed?.title,
+                    positionMs = item.episode.playbackPositionMs,
+                    durationSeconds = item.episode.durationSeconds,
                     modifier = Modifier.weight(1f).padding(start = 12.dp)
                 )
                 var showMenu by remember { mutableStateOf(false) }

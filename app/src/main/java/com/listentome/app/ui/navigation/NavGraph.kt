@@ -120,8 +120,7 @@ fun ListenToMeNavGraph(application: Application, openPlayerRequest: Int = 0) {
             FeedListScreen(
                 viewModel = viewModel,
                 onAddFeed = { navController.navigate(Routes.ADD_FEED) },
-                onOpenFeed = { feedId -> navController.navigate(Routes.episodeList(feedId)) },
-                onOpenSettings = { navController.navigate(Routes.SETTINGS) }
+                onOpenFeed = { feedId -> navController.navigate(Routes.episodeList(feedId)) }
             )
         }
 
@@ -131,7 +130,6 @@ fun ListenToMeNavGraph(application: Application, openPlayerRequest: Int = 0) {
             )
             SettingsScreen(
                 viewModel = viewModel,
-                onBack = { navController.popBackStack() },
                 onOpenDownloads = { navController.navigate(Routes.DOWNLOADS) }
             )
         }

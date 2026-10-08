@@ -499,6 +499,8 @@ private fun EpisodeRow(
                 title = episode.title,
                 publishedAt = episode.publishedAt,
                 isFinished = episode.isFinished,
+                positionMs = episode.playbackPositionMs,
+                durationSeconds = episode.durationSeconds,
                 modifier = Modifier.weight(1f).padding(start = 12.dp)
             )
             Box(contentAlignment = Alignment.Center) {

@@ -97,7 +97,17 @@ class AppSettings private constructor(context: Context) {
         _reorderHintDismissed.value = dismissed
     }
 
+    private val _lastPlayedEpisodeId = MutableStateFlow(prefs.getLong(KEY_LAST_PLAYED_EPISODE_ID, -1L).takeIf { it >= 0 })
+    val lastPlayedEpisodeId: StateFlow<Long?> = _lastPlayedEpisodeId.asStateFlow()
+
+    fun setLastPlayedEpisodeId(id: Long) {
+        if (_lastPlayedEpisodeId.value == id) return
+        prefs.edit().putLong(KEY_LAST_PLAYED_EPISODE_ID, id).apply()
+        _lastPlayedEpisodeId.value = id
+    }
+
     companion object {
+        private const val KEY_LAST_PLAYED_EPISODE_ID = "last_played_episode_id"
         private const val KEY_AUTOPLAY_QUEUE = "autoplay_queue_enabled"
         private const val KEY_SKIP_FORWARD_SECONDS = "skip_forward_seconds"
         private const val KEY_SKIP_BACK_SECONDS = "skip_back_seconds"

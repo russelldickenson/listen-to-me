@@ -8,6 +8,7 @@ import com.listentome.app.data.Feed
 import com.listentome.app.playback.PlaybackController
 import com.listentome.app.playback.PlaybackUiState
 import com.listentome.app.repository.PodcastRepository
+import com.listentome.app.settings.AppSettings
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,17 +31,41 @@ class MiniPlayerViewModel(application: Application) : AndroidViewModel(applicati
     private val repository = PodcastRepository.get(application)
     private val playbackController = PlaybackController.get(application)
 
+    private val appSettings = AppSettings.get(application)
+
     val playback: StateFlow<PlaybackUiState> = playbackController.state
+
+    init {
+        // Lives for the whole session (unlike the player screen's view model), so progress
+        // keeps being saved while playing in the background.
+        viewModelScope.launch {
+            playback.collect { state ->
+                val id = state.currentEpisodeId ?: return@collect
+                appSettings.setLastPlayedEpisodeId(id)
+                if (state.positionMs > 0) {
+                    val finished = state.durationMs > 0 && state.positionMs >= state.durationMs - 1000
+                    repository.updatePlaybackProgress(id, state.positionMs, finished)
+                }
+            }
+        }
+    }
 
     private val loadedEpisode = playback
         .map { it.currentEpisodeId }
         .flatMapLatest { id -> if (id == null) flowOf<Episode?>(null) else repository.observeEpisode(id) }
 
+    private val lastPlayed = appSettings.lastPlayedEpisodeId
+        .flatMapLatest { id -> if (id == null) flowOf<Episode?>(null) else repository.observeEpisode(id) }
+        .map { episode -> episode?.takeIf { !it.isFinished } }
+
     private val queueHead = repository.observeQueue().map { queue -> queue.firstOrNull { !it.isFinished } }
 
-    /** The loaded episode, or (e.g. after a cold start) the first unfinished queue episode. */
-    val state: StateFlow<MiniPlayerState?> = combine(loadedEpisode, queueHead) { loaded, head ->
-        loaded?.let { it to true } ?: head?.let { it to false }
+    /**
+     * The loaded episode, or (e.g. after a cold start) the last-played unfinished episode,
+     * falling back to the first unfinished queue episode.
+     */
+    val state: StateFlow<MiniPlayerState?> = combine(loadedEpisode, lastPlayed, queueHead) { loaded, last, head ->
+        loaded?.let { it to true } ?: (last ?: head)?.let { it to false }
     }.flatMapLatest { pair ->
         if (pair == null) {
             flowOf<MiniPlayerState?>(null)

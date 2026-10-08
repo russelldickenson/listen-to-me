@@ -15,6 +15,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.listentome.app.ui.miniplayer.MiniPlayer
@@ -56,7 +57,7 @@ private object Routes {
 }
 
 @Composable
-fun ListenToMeNavGraph(application: Application) {
+fun ListenToMeNavGraph(application: Application, openPlayerRequest: Int = 0) {
     val navController: NavHostController = rememberNavController()
     val miniPlayerViewModel: MiniPlayerViewModel = viewModel(
         factory = viewModelFactory { initializer { MiniPlayerViewModel(application) } }
@@ -67,6 +68,11 @@ fun ListenToMeNavGraph(application: Application) {
         Triple(Routes.FEED_LIST, "Podcasts", Icons.Default.Podcasts),
         Triple(Routes.SETTINGS, "Settings", Icons.Default.Settings)
     )
+    LaunchedEffect(openPlayerRequest) {
+        if (openPlayerRequest > 0 && navController.currentDestination?.route != Routes.PLAYER) {
+            navController.navigate(Routes.PLAYER)
+        }
+    }
     val showTabs = currentRoute in tabs.map { it.first }
 
     fun navigateToTab(route: String) {

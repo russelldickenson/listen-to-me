@@ -1,7 +1,24 @@
 package com.listentome.app.ui.navigation
 
 import android.app.Application
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.Podcasts
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.navigation.compose.currentBackStackEntryAsState
+import com.listentome.app.ui.miniplayer.MiniPlayer
+import com.listentome.app.ui.miniplayer.MiniPlayerViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -41,8 +58,55 @@ private object Routes {
 @Composable
 fun ListenToMeNavGraph(application: Application) {
     val navController: NavHostController = rememberNavController()
+    val miniPlayerViewModel: MiniPlayerViewModel = viewModel(
+        factory = viewModelFactory { initializer { MiniPlayerViewModel(application) } }
+    )
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    val tabs = listOf(
+        Triple(Routes.QUEUE, "Queue", Icons.AutoMirrored.Filled.QueueMusic),
+        Triple(Routes.FEED_LIST, "Podcasts", Icons.Default.Podcasts),
+        Triple(Routes.SETTINGS, "Settings", Icons.Default.Settings)
+    )
+    val showTabs = currentRoute in tabs.map { it.first }
 
-    NavHost(navController = navController, startDestination = Routes.FEED_LIST) {
+    fun navigateToTab(route: String) {
+        navController.navigate(route) {
+            popUpTo(Routes.QUEUE) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
+    Scaffold(
+        contentWindowInsets = WindowInsets(0),
+        bottomBar = {
+            Column {
+                if (currentRoute != null && currentRoute != Routes.PLAYER) {
+                    MiniPlayer(
+                        viewModel = miniPlayerViewModel,
+                        onOpenPlayer = { navController.navigate(Routes.PLAYER) }
+                    )
+                }
+                if (showTabs) {
+                    NavigationBar {
+                        tabs.forEach { (route, label, icon) ->
+                            NavigationBarItem(
+                                selected = currentRoute == route,
+                                onClick = { navigateToTab(route) },
+                                icon = { Icon(icon, contentDescription = null) },
+                                label = { Text(label) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    ) { outerPadding ->
+    NavHost(
+        navController = navController,
+        startDestination = Routes.QUEUE,
+        modifier = Modifier.padding(outerPadding).consumeWindowInsets(outerPadding)
+    ) {
         composable(Routes.FEED_LIST) {
             val viewModel: FeedListViewModel = viewModel(
                 factory = viewModelFactory { initializer { FeedListViewModel(application) } }
@@ -51,7 +115,6 @@ fun ListenToMeNavGraph(application: Application) {
                 viewModel = viewModel,
                 onAddFeed = { navController.navigate(Routes.ADD_FEED) },
                 onOpenFeed = { feedId -> navController.navigate(Routes.episodeList(feedId)) },
-                onOpenQueue = { navController.navigate(Routes.QUEUE) },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) }
             )
         }
@@ -123,9 +186,10 @@ fun ListenToMeNavGraph(application: Application) {
             )
             QueueScreen(
                 viewModel = viewModel,
-                onBack = { navController.popBackStack() },
+                onBrowsePodcasts = { navigateToTab(Routes.FEED_LIST) },
                 onPlay = { navController.navigate(Routes.PLAYER) }
             )
         }
+    }
     }
 }

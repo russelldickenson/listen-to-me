@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
@@ -93,7 +92,6 @@ fun FeedListScreen(
     viewModel: FeedListViewModel,
     onAddFeed: () -> Unit,
     onOpenFeed: (Long) -> Unit,
-    onOpenQueue: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
     val feeds by viewModel.feeds.collectAsState()
@@ -156,9 +154,6 @@ fun FeedListScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onOpenQueue, enabled = hasEpisodes) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "Queue")
-                    }
                     IconButton(onClick = viewModel::refreshAll, enabled = !isRefreshing && refreshProgress == null && hasEpisodes) {
                         Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh all feeds")
                     }

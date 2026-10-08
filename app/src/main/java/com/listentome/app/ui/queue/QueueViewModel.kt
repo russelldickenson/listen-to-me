@@ -51,12 +51,15 @@ class QueueViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Loads the given item (without starting playback) unless it's already the current one,
-     * then opens the full-screen player. Play/pause only happens from the player screen.
+     * Starts playing the given item (or resumes it if it's already the current one),
+     * then opens the full-screen player.
      */
     fun openEpisode(item: QueueItem, onOpenPlayer: () -> Unit) {
-        if (playback.value.currentEpisodeId != item.episode.id) {
+        val state = playback.value
+        if (state.currentEpisodeId != item.episode.id) {
             play(item)
+        } else if (!state.isPlaying) {
+            viewModelScope.launch { playbackController.togglePlayPause() }
         }
         onOpenPlayer()
     }
@@ -98,7 +101,7 @@ class QueueViewModel(application: Application) : AndroidViewModel(application) {
                 artworkUri = item.episode.imageUrl ?: item.feed?.imageUrl,
                 uri = source,
                 startPositionMs = item.episode.playbackPositionMs,
-                autoPlay = false
+                autoPlay = true
             )
         }
     }

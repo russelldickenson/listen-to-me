@@ -122,12 +122,15 @@ class EpisodeListViewModel(application: Application, private val feedId: Long) :
     }
 
     /**
-     * Loads the given episode (without starting playback) unless it's already the current one,
-     * then opens the full-screen player. Play/pause only happens from the player screen.
+     * Starts playing the given episode (or resumes it if it's already the current one),
+     * then opens the full-screen player.
      */
     fun openEpisode(episode: Episode, onOpenPlayer: () -> Unit) {
-        if (playback.value.currentEpisodeId != episode.id) {
-            play(episode, autoPlay = false)
+        val state = playback.value
+        if (state.currentEpisodeId != episode.id) {
+            play(episode)
+        } else if (!state.isPlaying) {
+            viewModelScope.launch { playbackController.togglePlayPause() }
         }
         onOpenPlayer()
     }

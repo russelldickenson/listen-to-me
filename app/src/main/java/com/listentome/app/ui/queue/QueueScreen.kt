@@ -67,7 +67,7 @@ import com.listentome.app.ui.components.performReorderSwap
 @Composable
 fun QueueScreen(
     viewModel: QueueViewModel,
-    onBack: () -> Unit,
+    onBrowsePodcasts: () -> Unit,
     onPlay: () -> Unit
 ) {
     val queue by viewModel.queue.collectAsState()
@@ -146,11 +146,6 @@ fun QueueScreen(
                         }
                     }
                 },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
                 actions = {
                     if (items.isNotEmpty()) {
                         val isEpisodeInQueuePlaying = playback.isPlaying &&
@@ -176,6 +171,12 @@ fun QueueScreen(
                         "or turn on \"Auto-queue downloads\" in Settings to add new episodes automatically.",
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
+                androidx.compose.material3.Button(
+                    onClick = onBrowsePodcasts,
+                    modifier = Modifier.padding(top = 16.dp)
+                ) {
+                    Text("Browse podcasts")
+                }
             }
         } else {
             Column(modifier = Modifier.fillMaxSize().padding(padding)) {

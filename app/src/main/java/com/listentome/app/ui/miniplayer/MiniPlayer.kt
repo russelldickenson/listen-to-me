@@ -47,7 +47,7 @@ fun MiniPlayer(
     Surface(
         tonalElevation = 3.dp,
         shadowElevation = 4.dp,
-        modifier = modifier.fillMaxWidth().clickable(onClick = onOpenPlayer)
+        modifier = modifier.fillMaxWidth().clickable(onClickLabel = "Open player", onClick = onOpenPlayer)
     ) {
         Column {
             LinearProgressIndicator(

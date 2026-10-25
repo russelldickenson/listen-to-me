@@ -106,7 +106,16 @@ class AppSettings private constructor(context: Context) {
         _lastPlayedEpisodeId.value = id
     }
 
+    private val _playbackSpeed = MutableStateFlow(prefs.getFloat(KEY_PLAYBACK_SPEED, 1f))
+    val playbackSpeed: StateFlow<Float> = _playbackSpeed.asStateFlow()
+
+    fun setPlaybackSpeed(speed: Float) {
+        prefs.edit().putFloat(KEY_PLAYBACK_SPEED, speed).apply()
+        _playbackSpeed.value = speed
+    }
+
     companion object {
+        private const val KEY_PLAYBACK_SPEED = "playback_speed"
         private const val KEY_LAST_PLAYED_EPISODE_ID = "last_played_episode_id"
         private const val KEY_AUTOPLAY_QUEUE = "autoplay_queue_enabled"
         private const val KEY_SKIP_FORWARD_SECONDS = "skip_forward_seconds"

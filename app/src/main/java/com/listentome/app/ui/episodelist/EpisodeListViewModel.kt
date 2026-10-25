@@ -3,6 +3,7 @@ package com.listentome.app.ui.episodelist
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.listentome.app.data.DownloadState
 import com.listentome.app.data.Episode
 import com.listentome.app.data.Feed
 import com.listentome.app.playback.PlaybackController
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 private const val PAGE_SIZE = 10
+private const val WIFI_ONLY_MESSAGE = "Wi-Fi only downloads is on. Connect to Wi-Fi or turn it off in Settings."
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class EpisodeListViewModel(application: Application, private val feedId: Long) : AndroidViewModel(application) {
@@ -46,18 +48,26 @@ class EpisodeListViewModel(application: Application, private val feedId: Long) :
 
     private val visibleCount = MutableStateFlow(PAGE_SIZE)
 
-    val episodes: StateFlow<List<Episode>> = combine(
-        visibleCount.flatMapLatest { limit -> repository.observeEpisodes(feedId, limit) },
-        appSettings.hidePlayedEpisodes
-    ) { episodes, hidePlayed ->
-        if (hidePlayed) episodes.filterNot { it.isFinished } else episodes
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    // Played episodes are filtered in the query so the page limit applies to what's actually shown.
+    val episodes: StateFlow<List<Episode>> = combine(visibleCount, appSettings.hidePlayedEpisodes) { limit, hidePlayed ->
+        limit to hidePlayed
+    }.flatMapLatest { (limit, hidePlayed) -> repository.observeEpisodes(feedId, limit, hidePlayed) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val totalEpisodeCount: StateFlow<Int> = repository.observeEpisodeCount(feedId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
-    val hasMoreEpisodes: StateFlow<Boolean> = combine(episodes, totalEpisodeCount) { shown, total ->
+    private val matchingEpisodeCount: StateFlow<Int> = appSettings.hidePlayedEpisodes
+        .flatMapLatest { hidePlayed -> repository.observeEpisodeCount(feedId, hidePlayed) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val hasMoreEpisodes: StateFlow<Boolean> = combine(episodes, matchingEpisodeCount) { shown, total ->
         shown.size < total
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    /** True when the feed has episodes but the "hide played" setting is filtering all of them out. */
+    val allHiddenAsPlayed: StateFlow<Boolean> = combine(appSettings.hidePlayedEpisodes, totalEpisodeCount) { hidePlayed, total ->
+        hidePlayed && total > 0
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     fun loadMoreEpisodes() {
@@ -85,8 +95,18 @@ class EpisodeListViewModel(application: Application, private val feedId: Long) :
     }
 
     fun download(episode: Episode) {
+        if (repository.isWifiBlockingDownloads()) {
+            _errorMessages.tryEmit(WIFI_ONLY_MESSAGE)
+            return
+        }
         viewModelScope.launch { repository.downloadEpisode(episode) }
     }
+
+    /** True if queueing [episode] will leave it undownloaded because Wi-Fi-only downloads is on and there's no Wi-Fi. */
+    fun willSkipDownloadOnQueue(episode: Episode): Boolean =
+        episode.downloadState != DownloadState.DOWNLOADED &&
+            episode.downloadState != DownloadState.DOWNLOADING &&
+            repository.isWifiBlockingDownloads()
 
     fun deleteDownload(episode: Episode) {
         viewModelScope.launch { repository.deleteDownload(episode) }

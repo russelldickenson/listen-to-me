@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.ErrorOutline
@@ -134,15 +135,14 @@ fun EpisodeArtwork(
 
 /**
  * Ring that traces the episode-actions button to show download status: a light gray track
- * before a download starts, filling in with blue (and a leading dot) as it downloads, ending
- * as a full blue ring once downloaded.
+ * before a download starts, filling in with blue (and a leading dot) as it downloads. Once
+ * downloaded it reverts to the track; the downloaded state is shown under the artwork instead.
  */
 @Composable
 fun DownloadStatusRing(downloadState: DownloadState, downloadProgress: Float?, modifier: Modifier = Modifier) {
     val trackColor = MaterialTheme.colorScheme.outlineVariant
     val progressColor = MaterialTheme.colorScheme.primary
     val progress = when (downloadState) {
-        DownloadState.DOWNLOADED -> 1f
         DownloadState.DOWNLOADING -> (downloadProgress ?: 0f).coerceIn(0f, 1f)
         else -> 0f
     }
@@ -197,7 +197,8 @@ fun EpisodeInfoColumn(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     positionMs: Long = 0,
-    durationSeconds: Long? = null
+    durationSeconds: Long? = null,
+    isDownloaded: Boolean = false
 ) {
     Column(modifier = modifier) {
         Text(
@@ -215,12 +216,26 @@ fun EpisodeInfoColumn(
                 overflow = TextOverflow.Ellipsis
             )
         }
-        Text(
-            text = formatEpisodeDate(publishedAt),
-            style = MaterialTheme.typography.bodySmall,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (isDownloaded) {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = "Downloaded",
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier
+                        .padding(end = 6.dp)
+                        .size(14.dp)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape)
+                        .padding(2.dp)
+                )
+            }
+            Text(
+                text = formatEpisodeDate(publishedAt),
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
         val durationMs = (durationSeconds ?: 0L) * 1000
         if (!isFinished && positionMs > 0 && durationMs > positionMs) {
             LinearProgressIndicator(

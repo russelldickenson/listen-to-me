@@ -12,19 +12,19 @@ import kotlinx.coroutines.flow.Flow
 interface EpisodeDao {
     @Query("""
         SELECT * FROM episodes WHERE feedId = :feedId
-        ORDER BY CASE WHEN manualSortOrder IS NULL THEN 1 ELSE 0 END, manualSortOrder ASC, publishedAt DESC
+        ORDER BY CASE WHEN manualSortOrder IS NULL THEN 0 ELSE 1 END, manualSortOrder ASC, publishedAt DESC
     """)
     fun observeByFeed(feedId: Long): Flow<List<Episode>>
 
     @Query("""
-        SELECT * FROM episodes WHERE feedId = :feedId
-        ORDER BY CASE WHEN manualSortOrder IS NULL THEN 1 ELSE 0 END, manualSortOrder ASC, publishedAt DESC
+        SELECT * FROM episodes WHERE feedId = :feedId AND (:hidePlayed = 0 OR isFinished = 0)
+        ORDER BY CASE WHEN manualSortOrder IS NULL THEN 0 ELSE 1 END, manualSortOrder ASC, publishedAt DESC
         LIMIT :limit
     """)
-    fun observeByFeedLimited(feedId: Long, limit: Int): Flow<List<Episode>>
+    fun observeByFeedLimited(feedId: Long, limit: Int, hidePlayed: Boolean): Flow<List<Episode>>
 
-    @Query("SELECT COUNT(*) FROM episodes WHERE feedId = :feedId")
-    fun observeCountByFeed(feedId: Long): Flow<Int>
+    @Query("SELECT COUNT(*) FROM episodes WHERE feedId = :feedId AND (:hidePlayed = 0 OR isFinished = 0)")
+    fun observeCountByFeed(feedId: Long, hidePlayed: Boolean): Flow<Int>
 
     @Query("SELECT COUNT(*) FROM episodes")
     fun observeTotalEpisodeCount(): Flow<Int>

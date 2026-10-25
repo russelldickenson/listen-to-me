@@ -97,68 +97,96 @@ fun SettingsScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxWidth().padding(padding).verticalScroll(rememberScrollState())) {
-            SectionHeader("Subscriptions")
+            SectionHeader("Player")
 
             ListItem(
-                headlineContent = { Text("Export subscriptions") },
-                supportingContent = { Text("Save your podcasts as an OPML file") },
-                leadingContent = { Icon(Icons.Default.FileUpload, contentDescription = null) },
+                headlineContent = { Text("Skip forward time") },
+                supportingContent = { Text("$skipForwardSeconds seconds") },
+                leadingContent = { Icon(Icons.Default.FastForward, contentDescription = null) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { exportLauncher.launch("listentome-subscriptions.opml") }
+                    .clickable { editingSkipForward = true }
             )
             ListItem(
-                headlineContent = { Text("Import subscriptions") },
-                supportingContent = { Text("Add podcasts from an OPML file") },
-                leadingContent = { Icon(Icons.Default.FileDownload, contentDescription = null) },
+                headlineContent = { Text("Skip back time") },
+                supportingContent = { Text("$skipBackSeconds seconds") },
+                leadingContent = { Icon(Icons.Default.FastRewind, contentDescription = null) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable {
-                        importLauncher.launch(arrayOf("text/x-opml", "text/xml", "application/xml", "*/*"))
-                    }
+                    .clickable { editingSkipBack = true }
             )
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            SectionHeader("Appearance")
-
             ListItem(
-                headlineContent = { Text("Dynamic color") },
-                supportingContent = { Text("Use colors from your wallpaper (Android 12+)") },
-                leadingContent = { Icon(Icons.Default.Palette, contentDescription = null) },
+                headlineContent = { Text("Skip back on resume") },
+                supportingContent = { Text("Resuming playback rewinds ${com.listentome.app.settings.AppSettings.AUTO_SKIP_BACK_ON_RESUME_SECONDS} seconds") },
+                leadingContent = { Icon(Icons.Default.PlayCircle, contentDescription = null) },
                 trailingContent = {
                     Switch(
-                        checked = dynamicColorEnabled,
-                        onCheckedChange = viewModel::setDynamicColorEnabled
+                        checked = autoSkipBackOnResume,
+                        onCheckedChange = viewModel::setAutoSkipBackOnResume
                     )
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { viewModel.setDynamicColorEnabled(!dynamicColorEnabled) }
+                    .clickable { viewModel.setAutoSkipBackOnResume(!autoSkipBackOnResume) }
             )
-
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-            SectionHeader("Episode list")
+            SectionHeader("Automatic downloads")
 
             ListItem(
-                headlineContent = { Text("Hide played episodes") },
-                supportingContent = { Text("Don't show episodes that have already been played") },
-                leadingContent = { Icon(Icons.Default.VisibilityOff, contentDescription = null) },
+                headlineContent = { Text("Auto-download episodes") },
+                supportingContent = {
+                    Text(
+                        if (defaultKeepLatestCount > 0) {
+                            "Download the latest $defaultKeepLatestCount episodes of each podcast. " +
+                                "Default for newly added podcasts; change per podcast in its feed settings."
+                        } else {
+                            "Off. New episodes aren't downloaded automatically. " +
+                                "Default for newly added podcasts; change per podcast in its feed settings."
+                        }
+                    )
+                },
+                leadingContent = { Icon(Icons.Default.Tune, contentDescription = null) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { editingDefaultKeepLatestCount = true }
+            )
+            ListItem(
+                headlineContent = { Text("Auto-queue downloads") },
+                supportingContent = {
+                    Text(
+                        "Add episodes to the queue once they finish downloading. " +
+                            "Episodes that aren't downloaded (for example off Wi-Fi) aren't queued."
+                    )
+                },
+                leadingContent = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null) },
                 trailingContent = {
                     Switch(
-                        checked = hidePlayedEpisodes,
-                        onCheckedChange = viewModel::setHidePlayedEpisodes
+                        checked = autoplayQueueEnabled,
+                        onCheckedChange = viewModel::setAutoplayQueueEnabled
                     )
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { viewModel.setHidePlayedEpisodes(!hidePlayedEpisodes) }
+                    .clickable { viewModel.setAutoplayQueueEnabled(!autoplayQueueEnabled) }
             )
-
+            ListItem(
+                headlineContent = { Text("Wi-Fi only downloads") },
+                supportingContent = { Text("Applies to all downloads, including ones you start by hand") },
+                leadingContent = { Icon(Icons.Default.Wifi, contentDescription = null) },
+                trailingContent = {
+                    Switch(
+                        checked = wifiOnlyDownloads,
+                        onCheckedChange = viewModel::setWifiOnlyDownloads
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.setWifiOnlyDownloads(!wifiOnlyDownloads) }
+            )
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-            SectionHeader("Downloads")
+            SectionHeader("Storage")
 
             ListItem(
                 headlineContent = { Text("Downloaded episodes") },
@@ -186,52 +214,8 @@ fun SettingsScreen(
                     .clickable { editingStorageLimit = true }
             )
             ListItem(
-                headlineContent = { Text("Auto-download episodes") },
-                supportingContent = {
-                    Text(
-                        if (defaultKeepLatestCount > 0) {
-                            "Automatically download the latest $defaultKeepLatestCount episodes"
-                        } else {
-                            "Off — new episodes aren't downloaded automatically"
-                        }
-                    )
-                },
-                leadingContent = { Icon(Icons.Default.Tune, contentDescription = null) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { editingDefaultKeepLatestCount = true }
-            )
-            ListItem(
-                headlineContent = { Text("Auto-queue downloads") },
-                supportingContent = { Text("Add new episodes to the queue as they're downloaded, including during refresh") },
-                leadingContent = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null) },
-                trailingContent = {
-                    Switch(
-                        checked = autoplayQueueEnabled,
-                        onCheckedChange = viewModel::setAutoplayQueueEnabled
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { viewModel.setAutoplayQueueEnabled(!autoplayQueueEnabled) }
-            )
-            ListItem(
-                headlineContent = { Text("Wi-Fi only downloads") },
-                supportingContent = { Text("Only download episodes when connected to Wi-Fi") },
-                leadingContent = { Icon(Icons.Default.Wifi, contentDescription = null) },
-                trailingContent = {
-                    Switch(
-                        checked = wifiOnlyDownloads,
-                        onCheckedChange = viewModel::setWifiOnlyDownloads
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { viewModel.setWifiOnlyDownloads(!wifiOnlyDownloads) }
-            )
-            ListItem(
-                headlineContent = { Text("Mark played episodes as auto-deleted") },
-                supportingContent = { Text("Remove a downloaded episode as soon as it's finished") },
+                headlineContent = { Text("Delete downloads after playing") },
+                supportingContent = { Text("Remove an episode's download as soon as it finishes playing") },
                 leadingContent = { Icon(Icons.Default.AutoDelete, contentDescription = null) },
                 trailingContent = {
                     Switch(
@@ -243,40 +227,63 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .clickable { viewModel.setAutoDeletePlayedEnabled(!autoDeletePlayedEnabled) }
             )
-
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-            SectionHeader("Player")
+            SectionHeader("Episode list")
 
             ListItem(
-                headlineContent = { Text("Skip forward time") },
-                supportingContent = { Text("$skipForwardSeconds seconds") },
-                leadingContent = { Icon(Icons.Default.FastForward, contentDescription = null) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { editingSkipForward = true }
-            )
-            ListItem(
-                headlineContent = { Text("Skip back time") },
-                supportingContent = { Text("$skipBackSeconds seconds") },
-                leadingContent = { Icon(Icons.Default.FastRewind, contentDescription = null) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { editingSkipBack = true }
-            )
-            ListItem(
-                headlineContent = { Text("Auto Skip Back on Resume") },
-                supportingContent = { Text("Resuming play skips back 3 seconds") },
-                leadingContent = { Icon(Icons.Default.PlayCircle, contentDescription = null) },
+                headlineContent = { Text("Hide played episodes") },
+                supportingContent = { Text("Don't show episodes that have already been played") },
+                leadingContent = { Icon(Icons.Default.VisibilityOff, contentDescription = null) },
                 trailingContent = {
                     Switch(
-                        checked = autoSkipBackOnResume,
-                        onCheckedChange = viewModel::setAutoSkipBackOnResume
+                        checked = hidePlayedEpisodes,
+                        onCheckedChange = viewModel::setHidePlayedEpisodes
                     )
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { viewModel.setAutoSkipBackOnResume(!autoSkipBackOnResume) }
+                    .clickable { viewModel.setHidePlayedEpisodes(!hidePlayedEpisodes) }
+            )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            SectionHeader("Appearance")
+
+            ListItem(
+                headlineContent = { Text("Dynamic color") },
+                supportingContent = { Text("Use colors from your wallpaper (Android 12+)") },
+                leadingContent = { Icon(Icons.Default.Palette, contentDescription = null) },
+                trailingContent = {
+                    Switch(
+                        checked = dynamicColorEnabled,
+                        onCheckedChange = viewModel::setDynamicColorEnabled
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.setDynamicColorEnabled(!dynamicColorEnabled) }
+            )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            SectionHeader("Subscriptions")
+
+            ListItem(
+                headlineContent = { Text("Export subscriptions") },
+                supportingContent = { Text("Save your podcasts as an OPML file") },
+                leadingContent = { Icon(Icons.Default.FileUpload, contentDescription = null) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { exportLauncher.launch("listentome-subscriptions.opml") }
+            )
+            ListItem(
+                headlineContent = { Text("Import subscriptions") },
+                supportingContent = { Text("Add podcasts from an OPML file") },
+                leadingContent = { Icon(Icons.Default.FileDownload, contentDescription = null) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        importLauncher.launch(arrayOf("text/x-opml", "text/xml", "application/xml", "*/*"))
+                    }
             )
         }
     }

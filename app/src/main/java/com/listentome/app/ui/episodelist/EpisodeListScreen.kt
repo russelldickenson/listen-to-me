@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -83,7 +85,9 @@ import com.listentome.app.data.Feed
 import com.listentome.app.ui.components.DownloadStatusRing
 import com.listentome.app.ui.components.EpisodeArtwork
 import com.listentome.app.ui.components.EpisodeInfoColumn
+import com.listentome.app.ui.components.moved
 import com.listentome.app.ui.components.performReorderSwap
+import com.listentome.app.ui.components.reorderActions
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,6 +102,7 @@ fun EpisodeListScreen(
     val downloadProgress by viewModel.downloadProgress.collectAsState()
     val playback by viewModel.playback.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val allHiddenAsPlayed by viewModel.allHiddenAsPlayed.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val haptic = LocalHapticFeedback.current
     var showSettings by remember { mutableStateOf(false) }
@@ -115,11 +120,16 @@ fun EpisodeListScreen(
     val scope = rememberCoroutineScope()
     fun toggleQueue(episode: Episode) {
         val wasQueued = episode.queuePosition != null
+        val skipsDownload = !wasQueued && viewModel.willSkipDownloadOnQueue(episode)
         if (wasQueued) viewModel.removeFromQueue(episode) else viewModel.addToQueue(episode)
         scope.launch {
             snackbarHostState.currentSnackbarData?.dismiss()
             val result = snackbarHostState.showSnackbar(
-                message = if (wasQueued) "Removed from queue" else "Added to top of queue",
+                message = when {
+                    wasQueued -> "Removed from queue"
+                    skipsDownload -> "Added to top of queue, not downloaded (Wi-Fi only)"
+                    else -> "Added to top of queue"
+                },
                 actionLabel = "Undo",
                 duration = SnackbarDuration.Short
             )
@@ -174,13 +184,21 @@ fun EpisodeListScreen(
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 if (items.isEmpty()) {
+                    // Scrollable so pull-to-refresh can latch onto it.
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
                             .padding(32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("No episodes yet. Pull to refresh once you're ready.")
+                        Text(
+                            if (allHiddenAsPlayed) {
+                                "No unplayed episodes. Turn off \"Hide played episodes\" in Settings to see played ones."
+                            } else {
+                                "No episodes yet. Pull down to refresh."
+                            }
+                        )
                     }
                 } else {
                     LazyColumn(
@@ -203,6 +221,10 @@ fun EpisodeListScreen(
                                 onOpenActions = { actionsEpisodeId = episode.id },
                                 onToggleQueue = { toggleQueue(episode) },
                                 modifier = Modifier
+                                    .reorderActions(index, items.lastIndex) { from, to ->
+                                        items = items.moved(from, to)
+                                        viewModel.reorderEpisodes(items.map { it.id })
+                                    }
                                     .zIndex(if (isDragging) 1f else 0f)
                                     .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
                                     .pointerInput(episode.id) {
@@ -276,13 +298,7 @@ fun EpisodeListScreen(
             onDownload = { viewModel.download(episode) },
             onDeleteDownload = { viewModel.deleteDownload(episode) },
             onMarkAsPlayed = { viewModel.markAsPlayed(episode) },
-            onToggleQueue = {
-                if (episode.queuePosition != null) {
-                    viewModel.removeFromQueue(episode)
-                } else {
-                    viewModel.addToQueue(episode)
-                }
-            }
+            onToggleQueue = { toggleQueue(episode) }
         )
     }
 }
@@ -515,7 +531,7 @@ private fun EpisodeRow(
         ) {
             EpisodeArtwork(
                 imageUrl = episode.imageUrl ?: fallbackArtworkUrl,
-                contentDescription = episode.title,
+                contentDescription = null,
                 downloadState = episode.downloadState,
                 downloadProgress = downloadProgress,
                 isFinished = episode.isFinished,
@@ -530,6 +546,7 @@ private fun EpisodeRow(
                 isFinished = episode.isFinished,
                 positionMs = episode.playbackPositionMs,
                 durationSeconds = episode.durationSeconds,
+                isDownloaded = episode.downloadState == DownloadState.DOWNLOADED,
                 modifier = Modifier.weight(1f).padding(start = 12.dp)
             )
             val isQueued = episode.queuePosition != null

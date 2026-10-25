@@ -4,11 +4,13 @@ import android.content.ComponentName
 import android.content.Context
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
 import com.listentome.app.settings.AppSettings
+import android.os.SystemClock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -26,7 +28,13 @@ data class PlaybackUiState(
     val isBuffering: Boolean = false,
     val positionMs: Long = 0,
     val durationMs: Long = 0,
-    val isQueuePlaylist: Boolean = false
+    val isQueuePlaylist: Boolean = false,
+    val playbackSpeed: Float = 1f,
+    val hasNext: Boolean = false,
+    val hasPrevious: Boolean = false,
+    /** Time left on a countdown sleep timer, or null when there isn't one. */
+    val sleepRemainingMs: Long? = null,
+    val sleepAtEndOfEpisode: Boolean = false
 )
 
 data class QueueTrack(
@@ -41,7 +49,8 @@ class PlaybackController private constructor(private val context: Context) {
 
     private val appSettings = AppSettings.get(context)
     private var controller: MediaController? = null
-    private val _state = MutableStateFlow(PlaybackUiState())
+    private val _state = MutableStateFlow(PlaybackUiState(playbackSpeed = appSettings.playbackSpeed.value))
+    private var sleepDeadlineElapsedMs: Long? = null
     val state: StateFlow<PlaybackUiState> = _state.asStateFlow()
 
     private val positionPoller = CoroutineScope(Dispatchers.Main)
@@ -61,13 +70,28 @@ class PlaybackController private constructor(private val context: Context) {
 
                     override fun onPlaybackStateChanged(playbackState: Int) {
                         _state.value = _state.value.copy(isBuffering = playbackState == Player.STATE_BUFFERING)
+                        if (playbackState == Player.STATE_ENDED && _state.value.sleepAtEndOfEpisode) cancelSleepTimer()
                     }
 
                     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                         val episodeId = mediaItem?.mediaId?.toLongOrNull()
-                        _state.value = _state.value.copy(currentEpisodeId = episodeId, positionMs = 0)
+                        _state.value = _state.value.copy(
+                            currentEpisodeId = episodeId,
+                            positionMs = 0,
+                            hasNext = c.hasNextMediaItem(),
+                            hasPrevious = c.hasPreviousMediaItem()
+                        )
+                        if (_state.value.sleepAtEndOfEpisode && reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+                            c.pause()
+                            cancelSleepTimer()
+                        }
+                    }
+
+                    override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
+                        _state.value = _state.value.copy(playbackSpeed = playbackParameters.speed)
                     }
                 })
+                c.setPlaybackSpeed(appSettings.playbackSpeed.value)
                 controller = c
                 cont.resume(c)
             }, MoreExecutors.directExecutor())
@@ -121,10 +145,18 @@ class PlaybackController private constructor(private val context: Context) {
             while (true) {
                 val c = controller
                 if (c != null) {
+                    val remaining = sleepDeadlineElapsedMs?.let { it - SystemClock.elapsedRealtime() }
                     _state.value = _state.value.copy(
                         positionMs = c.currentPosition.coerceAtLeast(0),
-                        durationMs = c.duration.coerceAtLeast(0)
+                        durationMs = c.duration.coerceAtLeast(0),
+                        hasNext = c.hasNextMediaItem(),
+                        hasPrevious = c.hasPreviousMediaItem(),
+                        sleepRemainingMs = remaining?.coerceAtLeast(0)
                     )
+                    if (remaining != null && remaining <= 0) {
+                        c.pause()
+                        cancelSleepTimer()
+                    }
                 }
                 delay(500)
             }
@@ -153,6 +185,41 @@ class PlaybackController private constructor(private val context: Context) {
         val c = ensureController()
         val target = (c.currentPosition + deltaMs).coerceIn(0, c.duration.coerceAtLeast(0))
         c.seekTo(target)
+    }
+
+    suspend fun setPlaybackSpeed(speed: Float) {
+        appSettings.setPlaybackSpeed(speed)
+        _state.value = _state.value.copy(playbackSpeed = speed)
+        ensureController().setPlaybackSpeed(speed)
+    }
+
+    /** Pauses playback after [minutes], replacing any existing sleep timer. */
+    fun setSleepTimerMinutes(minutes: Int) {
+        val durationMs = minutes * 60_000L
+        sleepDeadlineElapsedMs = SystemClock.elapsedRealtime() + durationMs
+        _state.value = _state.value.copy(sleepRemainingMs = durationMs, sleepAtEndOfEpisode = false)
+    }
+
+    /** Pauses playback when the current episode finishes, replacing any existing sleep timer. */
+    fun setSleepAtEndOfEpisode() {
+        sleepDeadlineElapsedMs = null
+        _state.value = _state.value.copy(sleepRemainingMs = null, sleepAtEndOfEpisode = true)
+    }
+
+    fun cancelSleepTimer() {
+        sleepDeadlineElapsedMs = null
+        _state.value = _state.value.copy(sleepRemainingMs = null, sleepAtEndOfEpisode = false)
+    }
+
+    /** Moves to the next item of the queue playlist, if there is one. */
+    suspend fun skipToNext() {
+        val c = ensureController()
+        if (c.hasNextMediaItem()) c.seekToNextMediaItem()
+    }
+
+    /** Restarts the current item if it's past the first few seconds, otherwise moves to the previous queue item. */
+    suspend fun skipToPrevious() {
+        ensureController().seekToPrevious()
     }
 
     fun currentPositionMs(): Long = controller?.currentPosition ?: 0

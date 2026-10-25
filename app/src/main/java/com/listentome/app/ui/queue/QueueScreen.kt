@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,6 +25,9 @@ import kotlinx.coroutines.delay
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -71,10 +73,13 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.listentome.app.data.DownloadState
 import com.listentome.app.ui.components.DownloadStatusRing
 import com.listentome.app.ui.components.EpisodeArtwork
 import com.listentome.app.ui.components.EpisodeInfoColumn
+import com.listentome.app.ui.components.moved
 import com.listentome.app.ui.components.performReorderSwap
+import com.listentome.app.ui.components.reorderActions
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,6 +95,23 @@ fun QueueScreen(
     val haptic = LocalHapticFeedback.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val hasStaleFeeds by viewModel.hasStaleFeeds.collectAsState()
+    val refreshProgress by viewModel.refreshProgress.collectAsState()
+
+    LaunchedEffect(viewModel) {
+        viewModel.errorMessages.collect { message -> snackbarHostState.showSnackbar(message) }
+    }
+
+    LaunchedEffect(hasStaleFeeds) {
+        if (hasStaleFeeds) {
+            val result = snackbarHostState.showSnackbar(
+                message = "Episodes might be out of date",
+                actionLabel = "Refresh",
+                duration = SnackbarDuration.Long
+            )
+            if (result == SnackbarResult.ActionPerformed) viewModel.refreshAll()
+        }
+    }
 
     fun removeWithUndo(episode: Episode) {
         viewModel.removeFromQueue(episode)
@@ -161,6 +183,7 @@ fun QueueScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
+            Column {
             TopAppBar(
                 title = {
                     Column {
@@ -174,20 +197,16 @@ fun QueueScreen(
                             )
                         }
                     }
-                },
-                actions = {
-                    if (items.isNotEmpty()) {
-                        val isEpisodeInQueuePlaying = playback.isPlaying &&
-                            items.any { it.episode.id == playback.currentEpisodeId }
-                        IconButton(onClick = viewModel::toggleQueuePlayback) {
-                            Icon(
-                                imageVector = if (isEpisodeInQueuePlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                contentDescription = if (isEpisodeInQueuePlaying) "Pause queue" else "Play queue"
-                            )
-                        }
-                    }
                 }
             )
+            val progress = refreshProgress
+            if (progress != null) {
+                androidx.compose.material3.LinearProgressIndicator(
+                    progress = { if (progress.second > 0) progress.first.toFloat() / progress.second else 0f },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            }
         }
     ) { padding ->
         if (items.isEmpty()) {
@@ -196,7 +215,7 @@ fun QueueScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    "Your queue is empty. Long-press an episode and choose \"Add to queue\", " +
+                    "Your queue is empty. Tap the queue button on an episode to add it, " +
                         "or turn on \"Auto-queue downloads\" in Settings to add new episodes automatically.",
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
@@ -213,16 +232,6 @@ fun QueueScreen(
                     ReorderHintBanner(
                         onDismiss = viewModel::dismissReorderHint,
                         text = "Tip: Long-press and drag any episode to reorder the queue."
-                    )
-                }
-                val inProgress = queue.filter {
-                    it.episode.playbackPositionMs > 0 && !it.episode.isFinished &&
-                        it.episode.id != playback.currentEpisodeId
-                }
-                if (inProgress.isNotEmpty()) {
-                    ContinueListeningStrip(
-                        items = inProgress,
-                        onPlay = { viewModel.openEpisode(it, onOpenPlayer = onPlay) }
                     )
                 }
                 LazyColumn(
@@ -242,6 +251,13 @@ fun QueueScreen(
                             isDragging = isDragging,
                             onPlay = { viewModel.openEpisode(item, onOpenPlayer = onPlay) },
                             onRemove = { removeWithUndo(item.episode) },
+                            onDownload = { viewModel.download(item.episode) },
+                            onDeleteDownload = { viewModel.deleteDownload(item.episode) },
+                            onMarkAsPlayed = { viewModel.markAsPlayed(item.episode) },
+                            reorderActions = Modifier.reorderActions(index, items.lastIndex) { from, to ->
+                                items = items.moved(from, to)
+                                viewModel.reorderQueue(items.map { it.episode.id })
+                            },
                             modifier = Modifier
                                 .zIndex(if (isDragging) 1f else 0f)
                                 .graphicsLayer {
@@ -303,6 +319,10 @@ private fun QueueRow(
     isDragging: Boolean,
     onPlay: () -> Unit,
     onRemove: () -> Unit,
+    onDownload: () -> Unit,
+    onDeleteDownload: () -> Unit,
+    onMarkAsPlayed: () -> Unit,
+    reorderActions: Modifier,
     modifier: Modifier = Modifier
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
@@ -337,7 +357,7 @@ private fun QueueRow(
         }
     ) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onPlay),
+        modifier = Modifier.fillMaxWidth().then(reorderActions).clickable(onClick = onPlay),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 1.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isDragging) {
@@ -352,8 +372,7 @@ private fun QueueRow(
                 modifier = Modifier
                     .padding(top = 12.dp)
                     .height(56.dp)
-                    .width(20.dp)
-                    .semantics { contentDescription = "Reorder" },
+                    .width(20.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Row(
@@ -366,7 +385,7 @@ private fun QueueRow(
                                 .fillMaxHeight(0.4f)
                                 .width(1.5.dp)
                                 .clip(RoundedCornerShape(0.75.dp))
-                                .background(if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) Color(0xFF2B2B2B) else Color(0xFFD4D4D4))
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant)
                         )
                     }
                 }
@@ -378,7 +397,7 @@ private fun QueueRow(
             ) {
                 EpisodeArtwork(
                     imageUrl = item.episode.imageUrl ?: item.feed?.imageUrl,
-                    contentDescription = item.episode.title,
+                    contentDescription = null,
                     downloadState = item.episode.downloadState,
                     downloadProgress = downloadProgress,
                     isFinished = item.episode.isFinished,
@@ -394,8 +413,14 @@ private fun QueueRow(
                     subtitle = item.feed?.title,
                     positionMs = item.episode.playbackPositionMs,
                     durationSeconds = item.episode.durationSeconds,
+                    isDownloaded = item.episode.downloadState == DownloadState.DOWNLOADED,
                     modifier = Modifier.weight(1f).padding(start = 12.dp)
                 )
+                if (item.episode.playbackPositionMs > 0 && !item.episode.isFinished && !isCurrentEpisode) {
+                    IconButton(onClick = onPlay) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = "Resume")
+                    }
+                }
                 var showMenu by remember { mutableStateOf(false) }
                 Box(contentAlignment = Alignment.Center) {
                     DownloadStatusRing(downloadState = item.episode.downloadState, downloadProgress = downloadProgress)
@@ -403,6 +428,40 @@ private fun QueueRow(
                         Icon(Icons.Default.MoreVert, contentDescription = "Episode actions")
                     }
                     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                        when (item.episode.downloadState) {
+                            DownloadState.NOT_DOWNLOADED -> DropdownMenuItem(
+                                text = { Text("Download episode") },
+                                leadingIcon = { Icon(Icons.Default.Download, contentDescription = null) },
+                                onClick = { showMenu = false; onDownload() }
+                            )
+                            DownloadState.DOWNLOADING -> DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        if (downloadProgress != null) "Downloading… ${(downloadProgress * 100).toInt()}%"
+                                        else "Downloading…"
+                                    )
+                                },
+                                leadingIcon = { Icon(Icons.Default.Download, contentDescription = null) },
+                                enabled = false,
+                                onClick = {}
+                            )
+                            DownloadState.DOWNLOADED -> DropdownMenuItem(
+                                text = { Text("Remove download") },
+                                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
+                                onClick = { showMenu = false; onDeleteDownload() }
+                            )
+                            DownloadState.FAILED -> DropdownMenuItem(
+                                text = { Text("Retry download") },
+                                leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                                onClick = { showMenu = false; onDownload() }
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = { Text("Mark as played") },
+                            leadingIcon = { Icon(Icons.Default.CheckCircle, contentDescription = null) },
+                            enabled = !item.episode.isFinished,
+                            onClick = { showMenu = false; onMarkAsPlayed() }
+                        )
                         DropdownMenuItem(
                             text = { Text("Remove from queue") },
                             leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
@@ -416,63 +475,5 @@ private fun QueueRow(
             }
         }
     }
-    }
-}
-
-/** Fixed strip above the queue (outside the reorderable list) for episodes that are partly played. */
-@Composable
-private fun ContinueListeningStrip(items: List<QueueItem>, onPlay: (QueueItem) -> Unit) {
-    Column(modifier = Modifier.padding(top = 8.dp)) {
-        Text(
-            "Continue listening",
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(items, key = { it.episode.id }) { item ->
-                val episode = item.episode
-                val durationMs = (episode.durationSeconds ?: 0L) * 1000
-                Card(
-                    modifier = Modifier.width(260.dp).clickable { onPlay(item) },
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        coil3.compose.AsyncImage(
-                            model = episode.imageUrl ?: item.feed?.imageUrl,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(6.dp)),
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                        )
-                        Column(modifier = Modifier.weight(1f).padding(start = 10.dp)) {
-                            Text(
-                                episode.title,
-                                style = MaterialTheme.typography.bodyMedium,
-                                maxLines = 2,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                            )
-                            if (durationMs > episode.playbackPositionMs) {
-                                androidx.compose.material3.LinearProgressIndicator(
-                                    progress = { (episode.playbackPositionMs.toFloat() / durationMs).coerceIn(0f, 1f) },
-                                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                                    gapSize = 0.dp,
-                                    drawStopIndicator = {}
-                                )
-                            }
-                        }
-                        Icon(
-                            Icons.Default.PlayArrow,
-                            contentDescription = "Resume",
-                            modifier = Modifier.padding(start = 4.dp)
-                        )
-                    }
-                }
-            }
-        }
     }
 }

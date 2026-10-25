@@ -1,6 +1,10 @@
 package com.listentome.app.ui.components
 
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 
 /**
  * Checks whether the dragged item (at [draggedIndex], visually offset by [dragOffsetY] pixels from
@@ -36,3 +40,17 @@ fun <T> performReorderSwap(
     }
     return null
 }
+
+/**
+ * Screen-reader alternative to long-press drag: exposes "Move up" / "Move down" actions on a row.
+ * Apply to the same modifier chain as the row's `clickable` so it merges into the focusable node.
+ */
+fun Modifier.reorderActions(index: Int, lastIndex: Int, onMove: (from: Int, to: Int) -> Unit): Modifier =
+    semantics {
+        customActions = buildList {
+            if (index > 0) add(CustomAccessibilityAction("Move up") { onMove(index, index - 1); true })
+            if (index < lastIndex) add(CustomAccessibilityAction("Move down") { onMove(index, index + 1); true })
+        }
+    }
+
+fun <T> List<T>.moved(from: Int, to: Int): List<T> = toMutableList().apply { add(to, removeAt(from)) }

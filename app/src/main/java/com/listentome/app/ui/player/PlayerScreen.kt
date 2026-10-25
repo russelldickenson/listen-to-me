@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -19,12 +20,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -57,6 +65,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.palette.graphics.Palette
@@ -67,6 +77,7 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import com.listentome.app.ui.components.HtmlText
+import com.listentome.app.ui.components.formatEpisodeDate
 
 private val PlayerBackgroundBase = Color(0xFF1B1B1D)
 
@@ -247,6 +258,15 @@ fun PlayerScreen(
                                     modifier = Modifier.padding(top = 4.dp)
                                 )
                             }
+                            formatEpisodeDate(currentEpisode.publishedAt).takeIf { it.isNotEmpty() }?.let {
+                                Text(
+                                    it,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(top = 2.dp)
+                                )
+                            }
 
                             Surface(
                                 onClick = { showDescription = true },
@@ -257,7 +277,9 @@ fun PlayerScreen(
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                                    modifier = Modifier
+                                        .heightIn(min = 48.dp)
+                                        .padding(horizontal = 14.dp, vertical = 6.dp)
                                 ) {
                                     Text(
                                         "Episode notes",
@@ -275,10 +297,16 @@ fun PlayerScreen(
 
                             Spacer(modifier = Modifier.weight(1f))
 
+                            val sliderMax = playback.durationMs.toFloat().coerceAtLeast(1f)
+                            var scrubPositionMs by remember { mutableStateOf<Float?>(null) }
                             Slider(
-                                value = playback.positionMs.toFloat().coerceAtMost(playback.durationMs.toFloat().coerceAtLeast(1f)),
-                                valueRange = 0f..playback.durationMs.toFloat().coerceAtLeast(1f),
-                                onValueChange = { viewModel.seekTo(it.toLong()) },
+                                value = scrubPositionMs ?: playback.positionMs.toFloat().coerceAtMost(sliderMax),
+                                valueRange = 0f..sliderMax,
+                                onValueChange = { scrubPositionMs = it },
+                                onValueChangeFinished = {
+                                    scrubPositionMs?.let { viewModel.seekTo(it.toLong()) }
+                                    scrubPositionMs = null
+                                },
                                 colors = SliderDefaults.colors(
                                     thumbColor = Color.White,
                                     activeTrackColor = Color.White,
@@ -289,7 +317,7 @@ fun PlayerScreen(
 
                             Row(modifier = Modifier.fillMaxWidth()) {
                                 Text(
-                                    formatMillis(playback.positionMs),
+                                    formatMillis(scrubPositionMs?.toLong() ?: playback.positionMs),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = Color.White.copy(alpha = 0.6f)
                                 )
@@ -303,10 +331,16 @@ fun PlayerScreen(
                             }
 
                             Row(
-                                modifier = Modifier.padding(vertical = 32.dp),
-                                horizontalArrangement = Arrangement.spacedBy(32.dp),
+                                modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                IconButton(
+                                    onClick = viewModel::skipToPrevious,
+                                    enabled = playback.hasPrevious || playback.positionMs > 3_000
+                                ) {
+                                    Icon(Icons.Default.SkipPrevious, contentDescription = "Previous", modifier = Modifier.size(32.dp))
+                                }
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     IconButton(onClick = { viewModel.skip(-skipBackSeconds * 1000L) }, modifier = Modifier.size(48.dp)) {
                                         Icon(Icons.Default.FastRewind, contentDescription = "Back $skipBackSeconds seconds", modifier = Modifier.size(32.dp))
@@ -319,7 +353,7 @@ fun PlayerScreen(
                                 }
                                 FilledIconButton(
                                     onClick = viewModel::togglePlayPause,
-                                    modifier = Modifier.size(80.dp),
+                                    modifier = Modifier.size(72.dp),
                                     colors = IconButtonDefaults.filledIconButtonColors(
                                         containerColor = MaterialTheme.colorScheme.primary,
                                         contentColor = MaterialTheme.colorScheme.onPrimary
@@ -349,12 +383,140 @@ fun PlayerScreen(
                                         color = Color.White.copy(alpha = 0.6f)
                                     )
                                 }
+                                IconButton(onClick = viewModel::skipToNext, enabled = playback.hasNext) {
+                                    Icon(Icons.Default.SkipNext, contentDescription = "Next episode in queue", modifier = Modifier.size(32.dp))
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                PlaybackSpeedChip(speed = playback.playbackSpeed, onSelect = viewModel::setPlaybackSpeed)
+                                SleepTimerChip(
+                                    remainingMs = playback.sleepRemainingMs,
+                                    atEndOfEpisode = playback.sleepAtEndOfEpisode,
+                                    onMinutes = viewModel::setSleepTimerMinutes,
+                                    onEndOfEpisode = viewModel::setSleepAtEndOfEpisode,
+                                    onCancel = viewModel::cancelSleepTimer
+                                )
                             }
 
                             Spacer(modifier = Modifier.weight(1f))
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+private val PlaybackSpeeds = listOf(0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f, 2.5f)
+
+private fun formatSpeed(speed: Float): String =
+    "${"%.2f".format(speed).trimEnd('0').trimEnd('.')}×"
+
+@Composable
+private fun PlayerChip(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    description: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White.copy(alpha = 0.12f),
+        contentColor = Color.White
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .heightIn(min = 48.dp)
+                .padding(horizontal = 14.dp)
+                .semantics { contentDescription = description }
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text(label, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 6.dp))
+        }
+    }
+}
+
+@Composable
+private fun PlaybackSpeedChip(speed: Float, onSelect: (Float) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        PlayerChip(
+            label = formatSpeed(speed),
+            icon = Icons.Default.Speed,
+            description = "Playback speed ${formatSpeed(speed)}",
+            onClick = { open = true }
+        )
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            PlaybackSpeeds.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(formatSpeed(option)) },
+                    trailingIcon = {
+                        if (option == speed) Icon(Icons.Default.Check, contentDescription = "Selected")
+                    },
+                    onClick = {
+                        open = false
+                        onSelect(option)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SleepTimerChip(
+    remainingMs: Long?,
+    atEndOfEpisode: Boolean,
+    onMinutes: (Int) -> Unit,
+    onEndOfEpisode: () -> Unit,
+    onCancel: () -> Unit
+) {
+    var open by remember { mutableStateOf(false) }
+    val active = remainingMs != null || atEndOfEpisode
+    val label = when {
+        remainingMs != null -> formatMillis(remainingMs)
+        atEndOfEpisode -> "End of episode"
+        else -> "Sleep"
+    }
+    Box {
+        PlayerChip(
+            label = label,
+            icon = Icons.Default.Bedtime,
+            description = if (active) "Sleep timer: $label" else "Sleep timer off",
+            onClick = { open = true }
+        )
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            listOf(5, 15, 30, 45, 60).forEach { minutes ->
+                DropdownMenuItem(
+                    text = { Text("$minutes minutes") },
+                    onClick = {
+                        open = false
+                        onMinutes(minutes)
+                    }
+                )
+            }
+            DropdownMenuItem(
+                text = { Text("End of episode") },
+                onClick = {
+                    open = false
+                    onEndOfEpisode()
+                }
+            )
+            if (active) {
+                DropdownMenuItem(
+                    text = { Text("Turn off timer") },
+                    onClick = {
+                        open = false
+                        onCancel()
+                    }
+                )
             }
         }
     }

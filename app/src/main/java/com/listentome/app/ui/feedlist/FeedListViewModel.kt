@@ -18,8 +18,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private val STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000L
-
 class FeedListViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = PodcastRepository.get(application)
     private val appSettings = AppSettings.get(application)
@@ -43,13 +41,7 @@ class FeedListViewModel(application: Application) : AndroidViewModel(application
     private val _errorMessages = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val errorMessages: SharedFlow<String> = _errorMessages.asSharedFlow()
 
-    val hasStaleFeeds: StateFlow<Boolean> = feeds
-        .map { list ->
-            val now = System.currentTimeMillis()
-            list.isNotEmpty() && list.any { feed ->
-                feed.lastRefreshedAt == null || now - feed.lastRefreshedAt > STALE_THRESHOLD_MS
-            }
-        }
+    val hasStaleFeeds: StateFlow<Boolean> = repository.observeHasStaleFeeds()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     val hasEpisodes: StateFlow<Boolean> = repository.observeTotalEpisodeCount()

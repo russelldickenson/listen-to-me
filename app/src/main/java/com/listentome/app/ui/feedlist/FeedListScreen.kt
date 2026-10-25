@@ -70,7 +70,9 @@ import coil3.compose.AsyncImage
 import com.listentome.app.R
 import com.listentome.app.data.Feed
 import com.listentome.app.ui.components.HtmlText
+import com.listentome.app.ui.components.moved
 import com.listentome.app.ui.components.performReorderSwap
+import com.listentome.app.ui.components.reorderActions
 
 private fun formatRelativeRefreshTime(epochMillis: Long): String {
     val diffMs = (System.currentTimeMillis() - epochMillis).coerceAtLeast(0)
@@ -157,6 +159,7 @@ fun FeedListScreen(
                 }
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddFeed) {
                 Icon(Icons.Default.Add, contentDescription = "Add feed")
@@ -200,6 +203,10 @@ fun FeedListScreen(
                                     onClick = { onOpenFeed(feed.id) },
                                     isDragging = isDragging,
                                     modifier = Modifier
+                                        .reorderActions(index, items.lastIndex) { from, to ->
+                                            items = items.moved(from, to)
+                                            viewModel.reorderFeeds(items.map { it.id })
+                                        }
                                         .zIndex(if (isDragging) 1f else 0f)
                                         .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
                                         .pointerInput(feed.id) {
@@ -236,10 +243,6 @@ fun FeedListScreen(
                     }
                 }
             }
-            SnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier.align(Alignment.TopCenter)
-            )
         }
     }
 }
@@ -312,8 +315,7 @@ private fun FeedRow(
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .width(20.dp)
-                    .semantics { contentDescription = "Reorder" },
+                    .width(20.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Row(
@@ -326,7 +328,7 @@ private fun FeedRow(
                                 .fillMaxHeight(0.4f)
                                 .width(1.5.dp)
                                 .clip(RoundedCornerShape(0.75.dp))
-                                .background(if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) Color(0xFF2B2B2B) else Color(0xFFD4D4D4))
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant)
                         )
                     }
                 }
@@ -335,7 +337,7 @@ private fun FeedRow(
                 Row(verticalAlignment = Alignment.Top) {
                     AsyncImage(
                         model = feed.imageUrl,
-                        contentDescription = feed.title,
+                        contentDescription = null,
                         modifier = Modifier
                             .size(56.dp)
                             .clip(RoundedCornerShape(8.dp)),

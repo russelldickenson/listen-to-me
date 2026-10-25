@@ -54,6 +54,24 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch { playbackController.seekTo(positionMs) }
     }
 
+    fun setPlaybackSpeed(speed: Float) {
+        viewModelScope.launch { playbackController.setPlaybackSpeed(speed) }
+    }
+
+    fun setSleepTimerMinutes(minutes: Int) = playbackController.setSleepTimerMinutes(minutes)
+
+    fun setSleepAtEndOfEpisode() = playbackController.setSleepAtEndOfEpisode()
+
+    fun cancelSleepTimer() = playbackController.cancelSleepTimer()
+
+    fun skipToNext() {
+        viewModelScope.launch { playbackController.skipToNext() }
+    }
+
+    fun skipToPrevious() {
+        viewModelScope.launch { playbackController.skipToPrevious() }
+    }
+
     fun skip(deltaMs: Long) {
         viewModelScope.launch { playbackController.seekBy(deltaMs) }
     }

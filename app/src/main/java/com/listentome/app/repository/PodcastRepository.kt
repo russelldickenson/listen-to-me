@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -30,6 +31,8 @@ import okhttp3.Request
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
+
+private const val STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000L
 
 data class OpmlImportResult(val added: Int, val skipped: Int, val failed: Int)
 
@@ -58,14 +61,21 @@ class PodcastRepository private constructor(context: Context) {
 
     fun observeDownloadedEpisodes(): Flow<List<Episode>> = episodeDao.observeDownloaded()
 
+    /** True when at least one feed has never been refreshed or was last refreshed over 24 hours ago. */
+    fun observeHasStaleFeeds(): Flow<Boolean> = feedDao.observeAll().map { list ->
+        val now = System.currentTimeMillis()
+        list.any { it.lastRefreshedAt == null || now - it.lastRefreshedAt > STALE_THRESHOLD_MS }
+    }
+
     fun observeFeed(feedId: Long): Flow<Feed?> = feedDao.observeById(feedId)
 
     fun observeEpisodes(feedId: Long): Flow<List<Episode>> = episodeDao.observeByFeed(feedId)
 
-    fun observeEpisodes(feedId: Long, limit: Int): Flow<List<Episode>> =
-        episodeDao.observeByFeedLimited(feedId, limit)
+    fun observeEpisodes(feedId: Long, limit: Int, hidePlayed: Boolean = false): Flow<List<Episode>> =
+        episodeDao.observeByFeedLimited(feedId, limit, hidePlayed)
 
-    fun observeEpisodeCount(feedId: Long): Flow<Int> = episodeDao.observeCountByFeed(feedId)
+    fun observeEpisodeCount(feedId: Long, hidePlayed: Boolean = false): Flow<Int> =
+        episodeDao.observeCountByFeed(feedId, hidePlayed)
 
     fun observeTotalEpisodeCount(): Flow<Int> = episodeDao.observeTotalEpisodeCount()
 
@@ -83,6 +93,10 @@ class PodcastRepository private constructor(context: Context) {
     private fun isEligibleForDownload(episode: Episode): Boolean =
         (episode.downloadState == DownloadState.NOT_DOWNLOADED || episode.downloadState == DownloadState.FAILED) &&
             episode.audioUrl.isNotBlank()
+
+    /** True when "Wi-Fi only downloads" is on and the device isn't on Wi-Fi, so a download would be skipped. */
+    fun isWifiBlockingDownloads(): Boolean =
+        appSettings.wifiOnlyDownloads.value && !NetworkMonitor.isOnWifi(appContext)
 
     /** Puts a just-removed episode back at its previous queue position (used by undo). */
     suspend fun restoreQueuePosition(episodeId: Long, position: Long) = withContext(Dispatchers.IO) {
